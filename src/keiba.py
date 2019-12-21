@@ -2,12 +2,18 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 
 # 学習する
 def fit(X_train, y_train, X_test, y_test):
+    """
+    2019/12/21
+    ・学習する関数。
+    ・modelはLogisticRegressionを使用。今のところLinearSVC, RandomForestClassifierより精度良かった。
+    ・まぁパラメーター何もいじってないんですけどね...
+    ・学習後に正答率と混合行列を表示する。
+    """
     # Create linear regression object
     regr = LogisticRegression(solver='lbfgs', max_iter=1000)
     # Train the model using the training set
@@ -16,11 +22,21 @@ def fit(X_train, y_train, X_test, y_test):
     predicted = regr.predict(X_test)
     # Check accuracy
     print(accuracy_score(y_test, predicted))
+    #print(predicted)
     mat = confusion_matrix(y_test, regr.predict(X_test))
     print(mat)
+    return predicted
 
 # 前処理
 def preprocessing(keibaData):
+    """
+    2019/12/21
+    ・現時点では馬名以外の文字が含まれる列はすべて除去している。
+    ・除去しない場合は、dropをさせないのとnewColumnsにカラム名を追加する必要あり。
+    ・この前処理では、csvファイルを全て入れる必要がある。
+    例
+    ・1つのcsvのデータを11日だけを前処理, 12日だけを前処理などはできない。
+    """
     dropdData = keibaData.drop(['性齢', '騎手', '調教師', '風向', '日時'], axis=1)
     newColumns = ["勝負", "枠", "馬番", "馬名", "負担重量", "推定上り", "馬体重", "増減", "単勝人気", 
         "降水量", "気温", "風速", "レース", "距離", "枠2", "馬番2", "馬名2", "負担重量2", "推定上り2", 
@@ -60,10 +76,38 @@ def preprocessing(keibaData):
     #newData.to_csv("test.csv", encoding="utf-8-sig") # csvで書き出し
     return newData
 
+# 馬の順位を表示する
+def ranking(keibaTest, predicted):
+    """
+    馬の順位を表示する。
+    馬ごとにカウントする。そのため一番カウントが多い馬が1位と予想される。
+    """
+    rank = pd.DataFrame()
+    # predicted で勝ちと予想された行のみを取得
+    for p in range(len(predicted)):
+        if predicted[p] == '1':
+            rank = rank.append(keibaTest.iloc[p])
+    # 勝率順 - 馬名を馬ごとにカウントする
+    print(rank['馬名'].value_counts())
+
+
 if __name__ == "__main__":
-    keibaData = pd.read_csv("../data/201911.csv",sep=",")
-    keibaData = preprocessing(keibaData)
-    X = keibaData.drop(columns=['勝負', '馬名', '馬名2'])
-    y = keibaData['勝負']
-    X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.1,random_state=0)
-    fit(X_train, y_train, X_test, y_test)
+    # csvを読み込む
+    keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
+    keibaTest = pd.read_csv("../data/test.csv",sep=",")
+
+    # データの前処理
+    keibaTrain = preprocessing(keibaTrain)
+    keibaTest = preprocessing(keibaTest)
+
+    # データの準備
+    X_train = keibaTrain.drop(columns=['勝負', '馬名', '馬名2'])
+    y_train = keibaTrain['勝負']
+
+    X_test = keibaTest.drop(columns=['勝負', '馬名', '馬名2'])
+    y_test = keibaTest['勝負']
+
+    # 学習する
+    predicted = fit(X_train, y_train, X_test, y_test)
+    # 順位を表示する
+    ranking(keibaTest, predicted)
