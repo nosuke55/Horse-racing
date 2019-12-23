@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
+from LightGBM import LightGBM#自作classのimport
+import lightgbm as lgb
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
 
 # 学習する
 def fit(X_train, y_train, X_test, y_test):
@@ -22,9 +24,9 @@ def fit(X_train, y_train, X_test, y_test):
 # 前処理
 def preprocessing(keibaData):
     dropdData = keibaData.drop(['性齢', '騎手', '調教師', '風向', '日時'], axis=1)
-    newColumns = ["勝負", "枠", "馬番", "馬名", "負担重量", "推定上り", "馬体重", "増減", "単勝人気", 
-        "降水量", "気温", "風速", "レース", "距離", "枠2", "馬番2", "馬名2", "負担重量2", "推定上り2", 
-        "馬体重2", "増減2", "単勝人気2", "降水量2", "気温2", "風速2", "レース2", "距離2"]
+    newColumns = ["label", "frame", "horse_num", "horse_name", "burden_weight", "estimated_rise", "horse_weight", "fluctuation", "winning_popularity", 
+        "precipitation_amount", "temperature", "wind_speed", "rase", "distance", "frame2", "horse_num2", "horse_name2", "burden_weight2", "estimated_rise2", 
+        "horse_weight2", "fluctuation2", "winning_popularity2", "precipitation2", "temperature2", "wind_speed2", "rase2", "deistance2"]
     merge = []
     delete = 0 # 次に削除する最初の番地の保持。
     while len(dropdData) != 0:
@@ -56,14 +58,35 @@ def preprocessing(keibaData):
                 gyou = np.concatenate([usiUma, maeUma])
                 gyou = np.insert(gyou, 0, wl)
                 merge.append(list(gyou))
-    newData = pd.DataFrame(merge, index=None, columns=newColumns)
+    newData = pd.DataFrame(merge, index=None, columns=newColumns,dtype='float64')
     #newData.to_csv("test.csv", encoding="utf-8-sig") # csvで書き出し
     return newData
 
 if __name__ == "__main__":
+    lgbm=LightGBM()
     keibaData = pd.read_csv("../data/201911.csv",sep=",")
     keibaData = preprocessing(keibaData)
-    X = keibaData.drop(columns=['勝負', '馬名', '馬名2'])
-    y = keibaData['勝負']
+    #keibaData.columns = ['a', 'b', 'c']
+    X = keibaData.drop(columns=['label', 'horse_name', 'horse_name2'])#label,horse_name,horse_name2
+    y = keibaData['label']
     X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.1,random_state=0)
-    fit(X_train, y_train, X_test, y_test)
+    print(X)
+    #fit(X_train, y_train, X_test, y_test)
+    hp=lgbm.hyperparm()
+    train_data=lgbm.train_data(X_train,y_train,lgb)
+    test_data=lgbm.test_data(X_test,y_test,train_data,lgb)
+    model=lgbm.fit(hp,train_data,test_data,lgb)
+    y_pred=lgbm.predict(X_test,model)
+    lgbm.accuracy_rate(y_test,y_pred)
+    #print("正解率",accuracy_score(y_test, y_pred))
+    #mat = confusion_matrix(y_test, y_pred)
+    y_pred_list = []
+    for x in y_pred:
+        y_pred_list.append(np.argmax(x))
+    mat = confusion_matrix(y_test, y_pred_list)
+    print(mat)
+    #print(y_test)
+    print('Accuracy score = \t {}'.format(accuracy_score(y_test, y_pred_list)))
+    print('Precision score = \t {}'.format(precision_score(y_test, y_pred_list)))
+    print('Recall score =   \t {}'.format(recall_score(y_test, y_pred_list)))
+    print('F1 score =      \t {}'.format(f1_score(y_test, y_pred_list)))
