@@ -37,10 +37,10 @@ def preprocessing(keibaData):
     例
     ・1つのcsvのデータを11日だけを前処理, 12日だけを前処理などはできない。
     """
-    dropdData = keibaData.drop(['性齢', '騎手', '調教師', '風向', '日時'], axis=1)
-    newColumns = ["勝負", "枠", "馬番", "馬名", "負担重量", "推定上り", "馬体重", "増減", "単勝人気", 
-        "降水量", "気温", "風速", "レース", "距離", "枠2", "馬番2", "馬名2", "負担重量2", "推定上り2", 
-        "馬体重2", "増減2", "単勝人気2", "降水量2", "気温2", "風速2", "レース2", "距離2"]
+    dropdData = keibaData #.drop(['性齢', '騎手', '調教師', '風向', '日時'], axis=1)
+    newColumns = ["勝負", "枠", "馬番", "馬名", "性齢", "負担重量", "騎手", "推定上り", "馬体重", "増減", "調教師", "単勝人気", 
+        "降水量", "気温", "風速", "風向", "レース", "距離", "日時", "枠2", "馬番2", "馬名2", "性齢2", "負担重量2", "騎手2", "推定上り2", 
+        "馬体重2", "増減2", "調教師2", "単勝人気2", "降水量2", "気温2", "風速2", "風向2", "レース2", "距離2", "日時2"]
     merge = []
     delete = 0 # 次に削除する最初の番地の保持。
     while len(dropdData) != 0:
@@ -98,16 +98,25 @@ if __name__ == "__main__":
 
     # データの前処理
     keibaTrain = preprocessing(keibaTrain)
+    # One-hot 日本語のカラムのみ処理する
+    keibaTrain = pd.get_dummies(keibaTrain, columns=['馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+
     keibaTest = preprocessing(keibaTest)
+    keibaTest2 = keibaTest.copy() # rankingの表示用
+    # One-hot 日本語のカラムのみ処理する
+    keibaTest = pd.get_dummies(keibaTest, columns=['馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    keibaTest = keibaTest.reindex(labels=keibaTrain.columns,fill_value=0, axis=1)
 
     # データの準備
-    X_train = keibaTrain.drop(columns=['勝負', '馬名', '馬名2'])
-    y_train = keibaTrain['勝負']
+    X_train = keibaTrain.drop(columns="勝負")
+    #X_train = keibaTrain.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    y_train = keibaTrain["勝負"]
 
-    X_test = keibaTest.drop(columns=['勝負', '馬名', '馬名2'])
-    y_test = keibaTest['勝負']
+    X_test = keibaTest.drop(columns="勝負")
+    #X_test = keibaTest.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    y_test = keibaTest["勝負"]
 
     # 学習する
     predicted = fit(X_train, y_train, X_test, y_test)
     # 順位を表示する
-    ranking(keibaTest, predicted)
+    ranking(keibaTest2, predicted)
