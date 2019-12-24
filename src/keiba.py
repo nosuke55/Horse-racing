@@ -76,6 +76,11 @@ def preprocessing(keibaData):
     #newData.to_csv("test.csv", encoding="utf-8-sig") # csvで書き出し
     return newData
 
+# One-hotエンコーディング。 日本語の部分をOne-hotで表す
+def one_hot(keibaData):
+    return pd.get_dummies(keibaData, columns=['馬名', '性齢', '騎手', '調教師', '風向', '日時', 
+        '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+
 # 馬の順位を表示する
 def ranking(keibaTest, predicted):
     """
@@ -90,30 +95,29 @@ def ranking(keibaTest, predicted):
     # 勝率順 - 馬名を馬ごとにカウントする
     print(rank['馬名'].value_counts())
 
-
 if __name__ == "__main__":
     # csvを読み込む
     keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
-    keibaTest = pd.read_csv("../data/test.csv",sep=",")
+    keibaTest = pd.read_csv("../data/arima2.csv",sep=",", encoding='shift-jis')
 
-    # データの前処理
+    # トレインデータの前処理
     keibaTrain = preprocessing(keibaTrain)
-    # One-hot 日本語のカラムのみ処理する
-    keibaTrain = pd.get_dummies(keibaTrain, columns=['馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    #keibaTrain = one_hot(keibaTrain)
 
+    # テストデータの前処理
     keibaTest = preprocessing(keibaTest)
     keibaTest2 = keibaTest.copy() # rankingの表示用
-    # One-hot 日本語のカラムのみ処理する
-    keibaTest = pd.get_dummies(keibaTest, columns=['馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
-    keibaTest = keibaTest.reindex(labels=keibaTrain.columns,fill_value=0, axis=1)
+    #keibaTest = one_hot(keibaTest)
+    # 次元合わせ
+    #keibaTest = keibaTest.reindex(labels=keibaTrain.columns,fill_value=0, axis=1)
 
     # データの準備
-    X_train = keibaTrain.drop(columns="勝負")
-    #X_train = keibaTrain.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    #X_train = keibaTrain.drop(columns="勝負")
+    X_train = keibaTrain.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
     y_train = keibaTrain["勝負"]
 
-    X_test = keibaTest.drop(columns="勝負")
-    #X_test = keibaTest.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
+    #X_test = keibaTest.drop(columns="勝負")
+    X_test = keibaTest.drop(columns=['勝負', '馬名', '性齢', '騎手', '調教師', '風向', '日時', '馬名2', '性齢2', '騎手2', '調教師2', '風向2', '日時2'])
     y_test = keibaTest["勝負"]
 
     # 学習する
