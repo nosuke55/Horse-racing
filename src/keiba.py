@@ -4,6 +4,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
+from LightGBM import LightGBM
 
 # 学習する
 def fit(X_train, y_train, X_test, y_test):
@@ -95,7 +96,8 @@ def ranking(keibaTest, predicted):
     # 勝率順 - 馬名を馬ごとにカウントする
     print(rank['馬名'].value_counts())
 
-if __name__ == "__main__":
+# ロジスティック回帰のプログラムの避難場所
+def okiba():
     # csvを読み込む
     keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
     keibaTest = pd.read_csv("../data/arima2.csv",sep=",", encoding='shift-jis')
@@ -124,3 +126,39 @@ if __name__ == "__main__":
     predicted = fit(X_train, y_train, X_test, y_test)
     # 順位を表示する
     ranking(keibaTest2, predicted)
+
+if __name__ == "__main__":
+    # インスタンス生成
+    lgb = LightGBM()
+
+    # csvを読み込む
+    keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
+    keibaTest = pd.read_csv("../data/arima2.csv",sep=",", encoding='shift-jis')
+
+    category = ["Horse_Name", "Sex_Age", "Jockey", "Trainer", "Wind_Direction", "Date", 
+        "Horse_Name2", "Sex_Age2", "Jockey2", "Trainer2", "Wind_Direction2", "Date2"]
+
+    # トレインデータの前処理
+    keibaTrain = lgb.preprocessing(keibaTrain)
+    keibaTrain = lgb.category_encode(keibaTrain, category)
+
+    # テストデータの前処理
+    keibaTest = lgb.preprocessing(keibaTest)
+    keibaTest2 = keibaTest.copy() # rankingの表示用
+    keibaTest = lgb.category_encode(keibaTest, category)
+
+    # データの準備
+    X_train = keibaTrain.drop(columns="Win_or_Lose")
+    y_train = keibaTrain["Win_or_Lose"]
+    horse_Train = lgb.train_data(X_train, y_train)
+
+    X_test = keibaTest.drop(columns="Win_or_Lose")
+    y_test = keibaTest["Win_or_Lose"]
+    horse_Test = lgb.test_data(X_test, y_test, horse_Train)
+
+    # 学習する
+    lgb.fit(horse_Train, horse_Test)
+    predicted = lgb.predict(X_test)
+    lgb.accuracy_rate(y_test, predicted)
+    # 順位を表示する
+    lgb.ranking(keibaTest2, predicted)
