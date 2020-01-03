@@ -6,7 +6,7 @@ from sklearn import metrics
 import category_encoders as ce
 #ふうう
 class LightGBM():
-        # 初期処理
+    # 初期処理
     def __init__(self, boostring='dart', applications='binary', learning_rate=0.05, min_data_in_leaf=20,
         feature_fraction=0.7,num_leaves=41, metric='auc', drop_date=0.15):
         self.parameters = {
@@ -48,8 +48,8 @@ class LightGBM():
                 for j in range(i+1, len(races)):
                     if races[i][0] < races[j][0]: wl = 1 # 勝ち
                     else: wl = 0 # 負け
-                    front_horse = np.delete(races[i], 0)
-                    back_horse = np.delete(races[j], 0)
+                    front_horse = np.delete(races[i], 0) # 順位の削除
+                    back_horse = np.delete(races[j], 0) # 順位の削除
                     horses = np.concatenate([front_horse, back_horse]) # 2行を結合する。
                     horses = np.insert(horses, 0, wl) # 最初に勝負を追加する。
                     horse_merge.append(list(horses))
