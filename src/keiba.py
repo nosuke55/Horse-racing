@@ -5,6 +5,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 from LightGBM import LightGBM
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
+import optuna
+from functools import partial
 
 # 学習する
 def fit(X_train, y_train, X_test, y_test):
@@ -22,10 +25,10 @@ def fit(X_train, y_train, X_test, y_test):
     # Make predictions using the testing set
     predicted = regr.predict(X_test)
     # Check accuracy
-    print(accuracy_score(y_test, predicted))
+    #print(accuracy_score(y_test, predicted))
     #print(predicted)
     mat = confusion_matrix(y_test, regr.predict(X_test))
-    print(mat)
+    #print(mat)
     return predicted
 
 # 前処理
@@ -127,6 +130,30 @@ def okiba():
     # 順位を表示する
     ranking(keibaTest2, predicted)
 
+    # ハイパーパラメータ関数
+def objective(trial, X_train, y_train, X_test, y_test):
+    """最小化する目的関数"""
+    # 調整するハイパーパラメータ
+    params = {
+        'learning_rate': trial.suggest_uniform('learning_rate', 1e-2, 1e0),
+        'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64)),
+        'feature_fraction': trial.suggest_uniform('feature_fraction', 1e-1, 1e0),
+        'num_leaves':int(trial.suggest_int('num_leaves', 2, 128)),
+        'drop_date': trial.suggest_uniform('drop_date', 1e-2, 1e0),
+    }
+    #model = xgb.XGBClassifier(**params, boosting='dart', application='binary',metric='auc')
+    lgb = LightGBM(**params)
+    lgb.fit(X_train,y_train) # 学習させる
+    pred = lgb.predict(X_test)  # テストデータからラベルを予測する
+    print(pred)
+    preds = np.round(np.abs(pred))
+    #print(preds)
+    #print(pred)
+    #pred_proba = model.predict_proba(X_test) 
+
+    return f1_score(y_true=y_test, y_pred=preds)#accuracy_score(y_test, model.predict(X_test))#最小化なので1から正解率を引く
+    
+
 if __name__ == "__main__":
     # インスタンス生成
     lgb = LightGBM()
@@ -156,7 +183,14 @@ if __name__ == "__main__":
     y_test = keibaTest["Win_or_Lose"]
     horse_Test = lgb.test_data(X_test, y_test, horse_Train)
 
+    #ハイパーパラメータ探索
+    #optuna.logging.set_verbosity(optuna.logging.WARNING)#oputenaのログ出力停止
+    study = optuna.create_study(direction='maximize')  # 最適化のセッションを作る,minimize,maximize
+    study.optimize(lambda trial: objective(trial, horse_Train, horse_Test, X_test, y_test), n_trials=30)  # 最適化のセッションを作る
+    print("ベストF１",study.best_value)
+
     # 学習する
+    lgb = LightGBM(**study.best_params)
     lgb.fit(horse_Train, horse_Test)
     predicted = lgb.predict(X_test)
     lgb.accuracy_rate(y_test, predicted)

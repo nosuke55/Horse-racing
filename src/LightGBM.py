@@ -4,14 +4,15 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 import category_encoders as ce
+
 #ふうう
 class LightGBM():
-    # 初期処理
-    def __init__(self, boostring='dart', applications='binary', learning_rate=0.05, min_data_in_leaf=20,
+        # 初期処理
+    def __init__(self, boostring='dart' , learning_rate=0.05, min_data_in_leaf=20,#applications='binary'
         feature_fraction=0.7,num_leaves=41, metric='auc', drop_date=0.15):
         self.parameters = {
             'boosting': boostring,          # dart (drop out trees) often performs better
-            'application': applications,     # Binary classification
+            #'application': applications,     # Binary classification
             'learning_rate': learning_rate,       # Learning rate, controls size of a gradient descent step
             'min_data_in_leaf': min_data_in_leaf,      # Data set is quite small so reduce this a bit
             'feature_fraction': feature_fraction,     # Proportion of features in each boost, controls overfitting
@@ -76,7 +77,7 @@ class LightGBM():
         return lgb.Dataset(X_test, label=y_test, reference=train_data)
 
     # 学習
-    def fit(self, train_data, test_data, batch=500):
+    def fit(self, train_data, test_data, batch=100):
         evaluation_results = {}
         self.model=lgb.train(self.parameters,
                         train_data,
@@ -84,7 +85,7 @@ class LightGBM():
                         valid_names=['Train', 'Test'],
                         evals_result=evaluation_results,
                         num_boost_round=batch,
-                        early_stopping_rounds=100,
+                        early_stopping_rounds=50,
                         verbose_eval=20)
         #optimum_boost_rounds = self.model.best_iteration
         #return optimum_boost_rounds
@@ -109,3 +110,4 @@ class LightGBM():
                 rank = rank.append(keibaTest.iloc[p+1])
         # 勝率順 - 馬名を馬ごとにカウントする
         print(rank['Horse_Name'].value_counts())
+
