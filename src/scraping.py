@@ -1,12 +1,18 @@
 # netkeibaをscraping
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 import chromedriver_binary as driver
 import time
 
 class Netkeiba:
     def __init__(self):
-        self.driver = webdriver.Chrome()
+        self.options = Options()
+        self.options.add_argument("--headless")
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument("--no-sandbox")
+        self.driver = webdriver.Chrome(chrome_options=self.options) # headlessでの動作
+        #self.driver = webdriver.Chrome()
         self.race_list_url = [] # eventのURLの保持
         self.race_result_url = [] # raceのURLの保持
         self.horse_url = [] # 馬のURLの保持
@@ -69,10 +75,13 @@ class Netkeiba:
             for i in range(1,len(trs)):
                 tds = trs[i].find_elements(By.TAG_NAME, "td")
                 for j in range(0,len(tds)):
+                    with open("../data/scraping_datas/data.txt", "a") as f:
+                        f.write(tds[j].text+"\n")
                     print(tds[j].text) # 馬ごとの様々な情報が表示される。
                 self.horse_url.append(hor[i-1].get_attribute("href"))
                 #print(hor[i-1].get_attribute("href")) # 馬のURL
             self.getHorseAgari(str(race.split("=")[2])) # lastDateはレースの日時
+            time.sleep(2) # ゆっくりアクセス
 
     def getHorseAgari(self, lastDate):
         """
@@ -103,46 +112,17 @@ class Netkeiba:
             tds = self.driver.find_elements(By.TAG_NAME, "td")
             for i in range(len(tds)):
                 if(tds[i].text == horse_name):
+                    with open("../data/scraping_datas/agari.txt", "a") as f:
+                        f.write(tds[i+8].text+"\n")
                     print(tds[i+8].text) # 推定上がりは名前から+8番目
                     break
-
-# テストするやつ。
-def test():
-    mae = "201905050112"
-    url = "https://db.sp.netkeiba.com/horse/2015110103/"
-    driver = webdriver.Chrome()
-    driver.get(url)
-    horse = driver.find_element_by_tag_name("h2")
-    old_race = driver.find_elements_by_tag_name("a")
-    isBreak = False
-    for old in old_race:
-        try:
-            if("race/20" in old.get_attribute("href")):
-                url = old.get_attribute("href")
-                if(isBreak): break
-                if(url.split("/")[4] == mae):
-                    isBreak = True
-        except TypeError:
-            continue
-    print(horse.text)
-    name = horse.text
-    # 推定上がりを取りにいく
-    driver.get(url)
-    tds = driver.find_elements(By.TAG_NAME, "td")
-    for i in range(len(tds)):
-        if(tds[i].text == name):
-            print(tds[i+8].text) # 推定上がりは名前から+8番目
-            break
-    driver.close()
-    driver.quit()
+            time.sleep(2) # ゆっくりアクセス
 
 
 if __name__ == "__main__":
-    pass
-    #test()
-    #nk = Netkeiba()
-    #nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
-    #nk.getEventURL("2019")
-    #nk.getRaceURL()
-    #nk.getRaceResult()
-    #nk.delDriver()
+    nk = Netkeiba()
+    nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
+    nk.getEventURL("2019")
+    nk.getRaceURL()
+    nk.getRaceResult()
+    nk.delDriver()

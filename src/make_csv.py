@@ -1,64 +1,55 @@
 import pandas as pd
 import re
 
-a = ["1", "着", "5", "5", "アポロテネシー", "牡4 508(-12)", "栗東･山内", "藤岡佑", "(57.0)", "2:10.2", "(36.1)", "5.9倍", "4人気",
-     "2", "着", "8", "8", "スーパーフェザー", "牡4 478(+2)", "栗東･友道", "ルメー", "(57.0)", "2:11.2", "6", "(36.9)", "4.2倍", "2人気",
-     "3", "着", "3", "3", "サクラアリュール", "牡4 462(0)", "栗東･村山", "田辺", "(57.0)", "2:11.3", "1/2", "(36.6)", "2.2倍", "1人気",
-     "4", "着", "1", "1", "グレンマクナス", "牡5 526(+2)", "美浦･牧", "石橋脩", "(57.0)", "2:11.5", "1", "(37.5)", "14.7倍", "5人気",
-     "5", "着", "8", "9", "テーオーダンケルク", "牡3 472(-4)", "栗東･高柳大", "三浦", "(55.0)", "2:11.5", "クビ", "(37.0)", "5.5倍", "3人気",
-     "6", "着", "6", "6", "セイウンオフロード", "牡3 476(+4)", "美浦･矢野", "津村", "(55.0)", "2:11.8", "1.3/4", "(36.7)", "19.3倍", "6人気",
-     "7", "着", "4", "4", "エクスパートラン", "牡4 462(-6)", "栗東･小崎", "▲藤田菜", "(54.0)", "2:11.9", "3/4", "(37.1)", "30.4倍", "8人気",
-     "8", "着", "2", "2", "フーズサイド", "牡3 476(+4)", "美浦･堀井", "武士沢", "(55.0)", "2:12.5", "3.1/2", "(37.1)", "20.1倍", "7人気",
-     "9", "着", "7", "7", "アバオアクー", "牡7 510(-4)", "美浦･新開", "大野", "(57.0)", "2:12.5", "クビ", "(36.4)", "52.7倍", "9人気"]
-
-b = ["36.5", "38.5", "35.3", "36.5", "38.5", "35.3", "36.5", "38.5", "35.3"]
-
-ab = []
-for agari in b:
-    tmp = []
-    while a != []:
-        tmp_a = a.pop(0)
-        if tmp_a == "着": continue # 着は無視!!
-        if "牡" in tmp_a or "牝" in tmp_a or "せん" in tmp_a: # 性別, 年齢, 体重, 増減に分ける。
-            sei = tmp_a[0]
-            age = int(tmp_a[1])
-            taiju = int(tmp_a[3:6])
-            zogen = 0
-            if tmp_a[7] == "+": # 増加なら正
-                zogen = int(re.sub("\\D", "", tmp_a[7:]))
-            elif tmp_a[7] == "-": # 減少なら負
-                zogen = -int(re.sub("\\D", "", tmp_a[7:]))
-            tmp += sei, age, taiju, zogen
-            continue
-        if ":" in tmp_a: # タイムが来たら、人気倍率まで削除する。
-            while "倍" not in a.pop(0): pass # こいつで削除
-            continue
-        if "(" in tmp_a: # 負担重量の取得
-            j = int(re.sub("\\D", "", tmp_a)) / 10
-            tmp.append(j)
-            continue
-        if "人気" in tmp_a: # 単勝人気の取得。取得後whileを抜ける
-            tmp.append(re.sub("\\D", "", tmp_a))
-            break
-        try:
-            tmp.append(int(tmp_a)) # 数値はint型に
-        except ValueError:
-            tmp.append(tmp_a) # 名前はstring型
-    tmp.append(float(agari)) # 推定上がりはfloat型
-    ab.append(tmp)
-
-for i in ab:
-    print(i)
+def csv_generator(data, agari):
+    columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
+                "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]
+    merge = []
+    for a in agari:
+        tmp = []
+        while data != []:
+            tmp_a = data.pop(0)
+            if tmp_a == "着": continue # 着は無視!!
+            if "牡" in tmp_a or "牝" in tmp_a or "せん" in tmp_a: # 性別, 年齢, 体重, 増減に分ける。
+                sei = tmp_a[0]
+                age = int(tmp_a[1])
+                taiju = int(tmp_a[3:6])
+                zogen = 0
+                if tmp_a[7] == "+": # 増加なら正
+                    zogen = int(re.sub("\\D", "", tmp_a[7:]))
+                elif tmp_a[7] == "-": # 減少なら負
+                    zogen = -int(re.sub("\\D", "", tmp_a[7:]))
+                tmp += sei, age, taiju, zogen
+                continue
+            if ":" in tmp_a: # タイムが来たら、人気倍率まで削除する。
+                while "倍" not in data.pop(0): pass # こいつで削除
+                continue
+            if "(" in tmp_a: # 負担重量の取得
+                j = int(re.sub("\\D", "", tmp_a)) / 10
+                tmp.append(j)
+                continue
+            if "人気" in tmp_a: # 単勝人気の取得。取得後whileを抜ける
+                tmp.append(re.sub("\\D", "", tmp_a))
+                break
+            try:
+                tmp.append(int(tmp_a)) # 数値はint型に
+            except ValueError:
+                tmp.append(tmp_a) # 名前はstring型
+        tmp.append(float(a)) # 推定上がりはfloat型
+        merge.append(tmp)
+    return pd.DataFrame(merge, index=None, columns=columns)
 
 # テキストに保存したデータをリストにする方法
-def readTextfile():
+def readTextfiles():
     data = []
-    with open("../data/scraping.txt", "r") as s:
-        data = s.read().splitlines()
-
     agari = []
-    with open("../data/agari.txt", "r") as a:
+    with open("../data/scraping_datas/test_data.txt", "r") as s:
+        data = s.read().splitlines()
+    with open("../data/scraping_datas/test_agari.txt", "r") as a:
         agari = a.read().splitlines()
+    return data, agari
 
-    print(data)
-    print(agari)
+if __name__ == "__main__":
+    data, agari = readTextfiles()
+    csv = csv_generator(data, agari)
+    print(csv)
