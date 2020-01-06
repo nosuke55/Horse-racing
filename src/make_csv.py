@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 a = ["1", "着", "5", "5", "アポロテネシー", "牡4 508(-12)", "栗東･山内", "藤岡佑", "(57.0)", "2:10.2", "(36.1)", "5.9倍", "4人気",
      "2", "着", "8", "8", "スーパーフェザー", "牡4 478(+2)", "栗東･友道", "ルメー", "(57.0)", "2:11.2", "6", "(36.9)", "4.2倍", "2人気",
@@ -12,12 +13,52 @@ a = ["1", "着", "5", "5", "アポロテネシー", "牡4 508(-12)", "栗東･�
 
 b = ["36.5", "38.5", "35.3", "36.5", "38.5", "35.3", "36.5", "38.5", "35.3"]
 
-x = 9
-for i, name in enumerate(a):
-    if i == x + 14:
-        x = x + 14
-        print(name)
-        a.pop(x)
-        x = x - 1
+ab = []
+for agari in b:
+    tmp = []
+    while a != []:
+        tmp_a = a.pop(0)
+        if tmp_a == "着": continue # 着は無視!!
+        if "牡" in tmp_a or "牝" in tmp_a or "せん" in tmp_a: # 性別, 年齢, 体重, 増減に分ける。
+            sei = tmp_a[0]
+            age = int(tmp_a[1])
+            taiju = int(tmp_a[3:6])
+            zogen = 0
+            if tmp_a[7] == "+": # 増加なら正
+                zogen = int(re.sub("\\D", "", tmp_a[7:]))
+            elif tmp_a[7] == "-": # 減少なら負
+                zogen = -int(re.sub("\\D", "", tmp_a[7:]))
+            tmp += sei, age, taiju, zogen
+            continue
+        if ":" in tmp_a: # タイムが来たら、人気倍率まで削除する。
+            while "倍" not in a.pop(0): pass # こいつで削除
+            continue
+        if "(" in tmp_a: # 負担重量の取得
+            j = int(re.sub("\\D", "", tmp_a)) / 10
+            tmp.append(j)
+            continue
+        if "人気" in tmp_a: # 単勝人気の取得。取得後whileを抜ける
+            tmp.append(re.sub("\\D", "", tmp_a))
+            break
+        try:
+            tmp.append(int(tmp_a)) # 数値はint型に
+        except ValueError:
+            tmp.append(tmp_a) # 名前はstring型
+    tmp.append(float(agari)) # 推定上がりはfloat型
+    ab.append(tmp)
 
-print(a)
+for i in ab:
+    print(i)
+
+# テキストに保存したデータをリストにする方法
+def readTextfile():
+    data = []
+    with open("../data/scraping.txt", "r") as s:
+        data = s.read().splitlines()
+
+    agari = []
+    with open("../data/agari.txt", "r") as a:
+        agari = a.read().splitlines()
+
+    print(data)
+    print(agari)

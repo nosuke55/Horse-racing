@@ -138,10 +138,11 @@ def test():
 
 
 if __name__ == "__main__":
+    pass
     #test()
-    nk = Netkeiba()
-    nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
-    nk.getEventURL("2019")
-    nk.getRaceURL()
-    nk.getRaceResult()
-    nk.delDriver()
+    #nk = Netkeiba()
+    #nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
+    #nk.getEventURL("2019")
+    #nk.getRaceURL()
+    #nk.getRaceResult()
+    #nk.delDriver()
