@@ -10,11 +10,14 @@ class LogisticReg():
 
     # 競馬用 前処理
     def preprocessing(self, keibaData):
-        newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex_Age", "Burden_Weight", "Jockey", "Estimated_Climb",
-            "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Winning_Popularity", "Precipitation_Amount", "Temperature", 
-            "Wind_Speed", "Wind_Direction", "Race", "Distance", "Date", "Frame2", "Horse_Num2", "Horse_Name2", "Sex_Age2", 
-            "Burden_Weight2", "Jockey2", "Estimated_Climb2", "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Winning_Popularity2", 
-            "Precipitation_Amount2", "Temperature2", "Wind_Speed2", "Wind_Direction2", "Race2", "Distance2", "Date2"]
+        #newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex_Age", "Burden_Weight", "Jockey", "Estimated_Climb",
+        #    "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Winning_Popularity", "Precipitation_Amount", "Temperature", 
+        #    "Wind_Speed", "Wind_Direction", "Race", "Distance", "Date", "Frame2", "Horse_Num2", "Horse_Name2", "Sex_Age2", 
+        #    "Burden_Weight2", "Jockey2", "Estimated_Climb2", "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Winning_Popularity2", 
+        #    "Precipitation_Amount2", "Temperature2", "Wind_Speed2", "Wind_Direction2", "Race2", "Distance2", "Date2"]
+        newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer",
+                     "Jockey","Burden_Weight", "Winning_Popularity", "Estimated_Climb", "Frame2", "Horse_Num2", "Horse_Name2", "Sex2","Age2",
+                     "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Jockey2","Burden_Weight2", "Winning_Popularity2", "Estimated_Climb2"]
         horse_merge = []
         delete = 0 # 次に削除する最初の番地の保持。
         while len(keibaData) != 0:
