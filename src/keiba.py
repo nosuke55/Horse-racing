@@ -34,8 +34,8 @@ if __name__ == "__main__":
     keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
     keibaTest = pd.read_csv("../data/arima2.csv",sep=",", encoding='shift-jis')
 
-    category = ["Horse_Name", "Sex_Age", "Jockey", "Trainer", "Wind_Direction", "Date", 
-        "Horse_Name2", "Sex_Age2", "Jockey2", "Trainer2", "Wind_Direction2", "Date2"]
+    category = ["Horse_Name", "Sex", "Jockey", "Trainer" 
+                "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
 
     # トレインデータの前処理
     keibaTrain = lgb.preprocessing(keibaTrain)
