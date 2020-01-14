@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 
 class LogisticReg():
-    def __init__(self, solver='lbfgs', max_iter=1000):
-        self.model = LogisticRegression(solver=solver, max_iter=max_iter)
+    def __init__(self, solver='lbfgs', max_iter=1000, penalty='l2', dual=False, tol=0.0001, C=1.0,
+                fit_intercept=True, intercept_scaling=1, class_weight=None, random_state=None,
+                multi_class='warn', verbose=0, warm_start=False, n_jobs=None):
+        self.model = LogisticRegression(solver=solver, max_iter=max_iter, penalty=penalty, dual=dual, tol=tol, C=C,
+                                        fit_intercept=fit_intercept, intercept_scaling=intercept_scaling, class_weight=class_weight, random_state=random_state,
+                                        multi_class=multi_class, verbose=verbose, warm_start=warm_start, n_jobs=n_jobs)
 
     # 競馬用 前処理
     def preprocessing(self, keibaData):
@@ -53,8 +57,10 @@ class LogisticReg():
         return newData
 
     # 文字データの処理
-    def category_encode(self, keibaData, category):
-        ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='impute')
+    def category_encode(self, keibaData, category, isTest=False):
+        ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='value')
+        if isTest:
+            return ce_oe.transform(keibaData)
         return ce_oe.fit_transform(keibaData)
 
     # 学習

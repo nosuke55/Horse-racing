@@ -11,8 +11,8 @@ class Netkeiba:
         self.options.add_argument("--headless")
         self.options.add_argument("--disable-gpu")
         self.options.add_argument("--no-sandbox")
-        #self.driver = webdriver.Chrome(chrome_options=self.options) # headlessでの動作
-        self.driver = webdriver.Chrome()
+        self.driver = webdriver.Chrome(chrome_options=self.options) # headlessでの動作
+        #self.driver = webdriver.Chrome()
         self.race_list_url = [] # eventのURLの保持
         self.race_result_url = [] # raceのURLの保持
         self.horse_url = [] # 馬のURLの保持
@@ -34,7 +34,7 @@ class Netkeiba:
                 url = e.get_attribute("href")
                 try:
                     if "?pid=race_list&kaisai_id=" in url: # 一旦東京のレースのみ
-                        print(url)
+                        #print(url)
                         self.race_list_url.append(url)
                 except TypeError:
                     continue
@@ -101,28 +101,29 @@ class Netkeiba:
             try:
                 self.setDriver(uma)
             except Exception: # time out
-                print("タイムアウト:", uma)
+                print("timeOutException: url is ", uma)
                 with open("../data/scraping_datas/agari.txt", "a") as f:
                     f.write("0\n")
                 time.sleep(2)
                 continue
             horse = self.driver.find_element_by_tag_name("h2")
-            divs = self.driver.find_elements_by_xpath("//div[@class='race_title Set_RaceName']")
+            old_race = self.driver.find_elements_by_tag_name("a")
             isBreak = False
             url = ""
-            # 前回のレースのURLの取得
-            for div in divs:
-                url = div.find_element_by_tag_name("a").get_attribute("href")
-                if isBreak: break
-                if url.split("/")[4] == lastDate:
-                    isBreak = True
+            for old in old_race:
+                try:
+                    if("race/20" in old.get_attribute("href")): # レースのURLのみ
+                        url = old.get_attribute("href")
+                        if(isBreak): break # 前回の大会は、現在の大会の次にくる
+                        if(url.split("/")[4] == lastDate): # 現在の大会が来たらBreakをTrueにする
+                            isBreak = True
+                except TypeError:
+                    continue
             horse_name = horse.text # 推定上がりを取得したい馬の名前を保存
-            print(horse_name)
             # 推定上がりを取りにいく
             try:
                 self.setDriver(url)
             except Exception: # selenium.common.exceptions.InvalidArgumentException 初出場の馬は前回の大会のデータがないため。
-                print("初出場の馬:", url)
                 with open("../data/scraping_datas/agari.txt", "a") as f:
                     f.write("0\n") # 初出場の馬の推定上がりは0にする。make_cscの判定用。
                 time.sleep(2)
@@ -145,7 +146,7 @@ if __name__ == "__main__":
     #with open("race_urls.txt", "a") as f:
     #    for url in nk.race_result_url:
     #        f.write(str(url)+"\n")
-    with open("rrace_urls.txt", "r") as f:
+    with open("race_urls2.txt", "r") as f:
         urls = f.read().splitlines()
     nk.race_result_url = urls
     nk.getRaceResult()
