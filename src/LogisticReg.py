@@ -57,11 +57,11 @@ class LogisticReg():
         return newData
 
     # 文字データの処理
-    def category_encode(self, keibaData, category, isTest=False):
+    def category_encode(self, keibaTrain, keibaTest, category):
         ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='value')
-        if isTest:
-            return ce_oe.transform(keibaData)
-        return ce_oe.fit_transform(keibaData)
+        train = ce_oe.fit_transform(keibaTrain)
+        test = ce_oe.transform(keibaTest)
+        return train, test
 
     # 学習
     def fit(self, X_train, y_train):
