@@ -67,8 +67,10 @@ class LightGBM():
         return newData 
 
     # 文字データの処理
-    def category_encode(self, keibaData, category):
-        ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='impute')
+    def category_encode(self, keibaData, category, isTest=False):
+        ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='value')
+        if isTest:
+            return ce_oe.transform(keibaData)
         return ce_oe.fit_transform(keibaData)
 
     # 学習データ作成

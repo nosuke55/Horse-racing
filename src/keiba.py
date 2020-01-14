@@ -24,27 +24,32 @@ def objective(trial, X_train, y_train, X_test, y_test):
     pred = lgb.predict(X_test)  # テストデータからラベルを予測する
     preds = np.round(np.abs(pred))
     return f1_score(y_true=y_test, y_pred=preds, average='micro')#accuracy_score(y_test, model.predict(X_test))#最小化なので1から正解率を引く
-    
+
 
 if __name__ == "__main__":
     # インスタンス生成
     lgb = LightGBM()
+    logi = LogisticReg()
 
     # csvを読み込む
-    keibaTrain = pd.read_csv("../data/201910-11.csv",sep=",")
-    keibaTest = pd.read_csv("../data/arima2.csv",sep=",", encoding='shift-jis')
+    #keibaTrain = pd.read_csv("../data/scraping_datas/all2019.csv",sep=",", encoding="shift-jis")
+    keibaTrain = pd.read_csv("../data/scraping_datas/train_preprocessing.csv",sep=",", encoding="shift-jis")
+    keibaTest = pd.read_csv("../data/111(中山)/4R.csv",sep=",", encoding='shift-jis')
 
-    category = ["Horse_Name", "Sex", "Jockey", "Trainer" 
+    category = ["Horse_Name", "Sex", "Jockey", "Trainer",
                 "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
+    #category = ["Horse_Name", "Sex_Age", "Jockey", "Trainer", "Wind_Direction", "Date", 
+    #     "Horse_Name2", "Sex_Age2", "Jockey2", "Trainer2", "Wind_Direction2", "Date2"]
 
     # トレインデータの前処理
-    keibaTrain = lgb.preprocessing(keibaTrain)
-    keibaTrain = lgb.category_encode(keibaTrain, category)
+    #keibaTrain = lgb.preprocessing(keibaTrain.drop(columns="Unnamed: 0"))
+    #keibaTrain.to_csv("../data/scraping_datas/train_preprocessing.csv", encoding="shift-jis")
+    keibaTrain = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), category)
 
     # テストデータの前処理
     keibaTest = lgb.preprocessing(keibaTest)
     keibaTest2 = keibaTest.copy() # rankingの表示用
-    keibaTest = lgb.category_encode(keibaTest, category)
+    keibaTest = lgb.category_encode(keibaTest, category, isTest=True)
 
     # データの準備
     X_train = keibaTrain.drop(columns="Win_or_Lose")
@@ -57,15 +62,21 @@ if __name__ == "__main__":
 
     #ハイパーパラメータ探索
     #optuna.logging.set_verbosity(optuna.logging.WARNING) # oputenaのログ出力停止
-    study = optuna.create_study(direction='maximize')  # 最適化のセッションを作る,minimize,maximize
-    study.optimize(lambda trial: objective(trial, horse_Train, horse_Test, X_test, y_test), n_trials=30)  # 最適化のセッションを作る
-    print("ベストF１",study.best_value)
-    print("ベストparam", study.best_params)
+    #study = optuna.create_study(direction='maximize')  # 最適化のセッションを作る,minimize,maximize
+    #study.optimize(lambda trial: objective(trial, horse_Train, horse_Test, X_test, y_test), n_trials=30)  # 最適化のセッションを作る
+    #print("ベストF１",study.best_value)
+    #print("ベストparam", study.best_params)
 
     # 学習する
-    lgb = LightGBM(**study.best_params)
-    lgb.fit(horse_Train, horse_Test)
+    #lgb = LightGBM(**study.best_params)
+    #lgb = LightGBM()
+    lgb = LightGBM(learning_rate = 0.326892551127119, min_data_in_leaf = 48, feature_fraction = 0.11436715830002117, num_leaves = 119, drop_date = 0.44994135049617967)
+    lgb.fit(horse_Train, horse_Test, batch=200)
+    #logi.fit(X_train, y_train)
+    #predicted = logi.predict(X_test)
     predicted = lgb.predict(X_test)
     lgb.accuracy_rate(y_test, predicted)
+    #logi.accuracy_matrix(X_test, y_test)
     # 順位を表示する
     lgb.ranking(keibaTest2, predicted)
+    #logi.ranking(keibaTest2, predicted)
