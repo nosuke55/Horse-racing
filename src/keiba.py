@@ -44,12 +44,15 @@ if __name__ == "__main__":
     # トレインデータの前処理
     #keibaTrain = lgb.preprocessing(keibaTrain.drop(columns="Unnamed: 0"))
     #keibaTrain.to_csv("../data/scraping_datas/train_preprocessing.csv", encoding="shift-jis")
-    keibaTrain = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), category)
+    #keibaTrain = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), category)
 
     # テストデータの前処理
     keibaTest = lgb.preprocessing(keibaTest)
     keibaTest2 = keibaTest.copy() # rankingの表示用
-    keibaTest = lgb.category_encode(keibaTest, category, isTest=True)
+    #keibaTest = lgb.category_encode(keibaTest, category, isTest=True)
+
+    # カテゴリー処理
+    keibaTrain, keibaTest = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), keibaTest, category)
 
     # データの準備
     X_train = keibaTrain.drop(columns="Win_or_Lose")
