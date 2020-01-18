@@ -20,7 +20,7 @@ class LightGBM():
             'metric': metric,  # Area under ROC curve as the evaulation metric
             'drop_rate': drop_date   
         }
-        self.model = "model in here"
+        self.model = lgb.LGBMModel()
 
     # 競馬用 前処理
     def preprocessing(self, keibaData):
