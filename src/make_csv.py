@@ -1,9 +1,11 @@
 import pandas as pd
 import re
 
-def csv_generator(data, agari):
-    columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss",
-                "Trainer", "Jockey", "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]
+def csv_generator(data, agari, info):
+    #columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss",
+    #            "Trainer", "Jockey", "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]
+    columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
+               "Burden_Weight", "Winning_Popularity", "Estimated_Climb", "date", "course", "meter", "direction", "weather", "status"]
     merge = []
     zeroAgari = False
     isCancell = False
@@ -76,8 +78,23 @@ def csv_generator(data, agari):
             tmp.append(0)
         else:
             tmp.append(float(a)) # 推定上がりはfloat型
+        if tmp[0] == 1:
+            infos = info.pop(0)
+            date = re.search(r'\d+:\d+', infos).group() # 2数字:2数字を取得
+            course = infos[6:7]
+            meter = re.search(r'\d{4}', infos).group() # 数字が4つ連続
+            direction = re.findall(r'\((.+)\)', infos)[0] # 括弧内に含まれる文字
+            if infos[-2] != " ":
+                weather = infos[-2:]
+            else:
+                weather = infos[-1]
+            status = info.pop(0)
+        tmp += date, course, meter, direction, weather, status
         merge.append(tmp)
     return pd.DataFrame(merge, index=None, columns=columns)
+
+#13:15 ダ1400m (右) 16頭 雨
+#良
 
 # テキストに保存したデータをリストにする方法
 def readTextfiles():
@@ -87,17 +104,11 @@ def readTextfiles():
         data = s.read().splitlines()
     with open("../data/scraping_datas/agari.txt", "r") as a:
         agari = a.read().splitlines()
-    return data, agari
+    with open("../data/scraping_datas/race_info.txt", "r") as i:
+        info = i.read().splitlines()
+    return data, agari, info
 
 if __name__ == "__main__":
-    data, agari = readTextfiles()
-    csv = csv_generator(data, agari)
-    csv.to_csv("../data/scraping_datas/all2019_3.csv", encoding="shift-jis")
-    """
-    with open("race_urls.txt", "r") as f:
-        urls = f.read().splitlines()
-        urls = list(set(urls))
-    with open("race_urls2.txt", "w") as f:
-        for u in urls:
-            f.write(u+"\n")
-    """
+    data, agari, info = readTextfiles()
+    csv = csv_generator(data, agari, info)
+    csv.to_csv("../data/scraping_datas/all2019_2.csv", encoding="shift-jis")
