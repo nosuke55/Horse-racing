@@ -36,7 +36,6 @@ def objective(trial, X_train, y_train, X_test, y_test, batch=100):
     preds = np.round(np.abs(pred))
     return f1_score(y_true=y_test, y_pred=preds, average='micro')#accuracy_score(y_test, model.predict(X_test))#最小化なので1から正解率を引く
 
-
 def create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100):
     # インスタンス生成
     lgb = LightGBM()
@@ -157,5 +156,7 @@ if __name__ == "__main__":
                 "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
     keibaTrain, keibaTest = lgb.category_encode(keibaTrain, keibaTest, category)
 
-    create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100)
-    #load_model(keibaTest, keibaTest2)
+    if yosoku:
+        load_model(keibaTest, keibaTest2)
+    else:
+        create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100)

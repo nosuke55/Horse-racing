@@ -136,6 +136,16 @@ class Netkeiba:
                     break
             time.sleep(2) # ゆっくりアクセス
 
+    def getRaceInfo(self):
+        for url in self.race_result_url:
+            print(url)
+            self.setDriver(url)
+            element = self.driver.find_element_by_class_name("Race_Data")
+            race_info = element.text
+            with open("race_info.txt", "a") as f:
+                f.write(race_info+"\n")
+            time.sleep(2)
+
 
 if __name__ == "__main__":
     nk = Netkeiba()
