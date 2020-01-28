@@ -39,7 +39,6 @@ def objective(trial, X_train, y_train, X_test, y_test, batch=100):
 def create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100):
     # インスタンス生成
     lgb = LightGBM()
-
     # データの準備
     X_train = keibaTrain.drop(columns="Win_or_Lose")
     y_train = keibaTrain["Win_or_Lose"]
@@ -78,7 +77,8 @@ def load_model(keibaTest, keibaRank):
     predicted = lgb.predict(X_test)
     lgb.accuracy_rate(y_test, predicted)
     # 順位を表示する
-    lgb.ranking(keibaRank, predicted)
+    lgb.ranking(keibaTest2, predicted)
+    lgb.plot_imp()
 
 def load_csv(train_csv_name, test_csv_name, yosoku=False):
     """

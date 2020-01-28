@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 import category_encoders as ce
+from sklearn import preprocessing #カテゴリデータ(定性的データ)を辞書順に整数に変換
+import matplotlib.pyplot as plt
 
 #ふうう
 class LightGBM():
@@ -20,6 +22,7 @@ class LightGBM():
             'metric': metric,  # Area under ROC curve as the evaulation metric
             'drop_rate': drop_date   
         }
+        self.evaluation_results = {}
         self.model = lgb.LGBMModel()
 
     # 競馬用 前処理
@@ -83,16 +86,16 @@ class LightGBM():
 
     # 学習
     def fit(self, train_data, test_data, batch=100):
-        evaluation_results = {}
+        #evaluation_results = {}
         self.model=lgb.train(self.parameters,
                         train_data,
                         valid_sets=[train_data, test_data], 
                         valid_names=['Train', 'Test'],
-                        evals_result=evaluation_results,
+                        evals_result = self.evaluation_results,
                         num_boost_round=batch,
                         early_stopping_rounds=50,
                         verbose_eval=20)
-        #optimum_boost_rounds = self.model.best_iteration
+        optimum_boost_rounds = self.model.best_iteration
         #return optimum_boost_rounds
 
     def predict(self,X_test):
@@ -115,4 +118,26 @@ class LightGBM():
                 rank = rank.append(keibaTest.iloc[p+1])
         # 勝率順 - 馬名を馬ごとにカウントする
         print(rank['Horse_Name'].value_counts())
+    
+    #重要度の可視化
+    def plot_imp(self):
+        fig, axs = plt.subplots(2, 1, figsize=[20, 10])
 
+        # Plot the log loss during training
+        axs[0].plot(self.evaluation_results['Train']['auc'], label='Train')
+        axs[0].plot(self.evaluation_results['Test']['auc'], label='Test')
+        axs[0].set_ylabel('auc')
+        axs[0].set_xlabel('Boosting round')
+        axs[0].set_title('Training performance')
+        axs[0].legend()
+
+        # Plot feature importance
+        importances = pd.DataFrame({'features': self.model.feature_name(), 
+                                    'importance': self.model.feature_importance()}).sort_values('importance', ascending=False)
+        axs[1].bar(x=np.arange(len(importances)), height=importances['importance'])
+        axs[1].set_xticks(np.arange(len(importances)))
+        axs[1].set_xticklabels(importances['features'])
+        axs[1].set_ylabel('Feature importance (# times used to split)')
+        axs[1].set_title('Feature importance')
+
+        plt.show()
