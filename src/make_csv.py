@@ -80,14 +80,14 @@ def csv_generator(data, agari, info):
             tmp.append(float(a)) # 推定上がりはfloat型
         if tmp[0] == 1:
             infos = info.pop(0)
-            date = re.search(r'\d+:\d+', infos).group() # 2数字:2数字を取得
-            course = infos[6:7]
-            meter = re.search(r'\d{4}', infos).group() # 数字が4つ連続
-            direction = re.findall(r'\((.+)\)', infos)[0] # 括弧内に含まれる文字
+            date = str(re.search(r'\d+:\d+', infos).group()) # 2数字:2数字を取得
+            course = str(infos[6:7])
+            meter = int(re.search(r'\d{4}', infos).group()) # 数字が4つ連続
+            direction = str(re.findall(r'\((.+)\)', infos)[0]) # 括弧内に含まれる文字
             if infos[-2] != " ":
-                weather = infos[-2:]
+                weather = str(infos[-2:])
             else:
-                weather = infos[-1]
+                weather = str(infos[-1])
             status = info.pop(0)
         tmp += date, course, meter, direction, weather, status
         merge.append(tmp)
