@@ -12,22 +12,22 @@ import pickle, os
 def objective(trial, X_train, y_train, X_test, y_test, batch=100):
     """最小化する目的関数"""
     # 調整するハイパーパラメータ
-    #params = {
-    #    'boostring': trial.suggest_categorical('boostring', ['gbdt', 'dart', 'goss']),
-    #    'metric': {'binary', 'binary_error', 'auc'},
-    #    'num_leaves': trial.suggest_int("num_leaves", 10, 500),
-    #    'learning_rate': trial.suggest_loguniform("learning_rate", 1e-5, 1),
-    #    'feature_fraction': trial.suggest_uniform("feature_fraction", 0.0, 1.0),
-    #    'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64))
-    #}
-    
     params = {
-        'learning_rate': trial.suggest_uniform('learning_rate', 1e-2, 1e0),
-        'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64)),
-        'feature_fraction': trial.suggest_uniform('feature_fraction', 1e-1, 1e0),
-        'num_leaves':int(trial.suggest_int('num_leaves', 2, 128)),
-        'drop_date': trial.suggest_uniform('drop_date', 1e-2, 1e0),
+        'boostring': trial.suggest_categorical('boostring', ['gbdt', 'dart', 'goss']),
+        'metric': {'binary', 'binary_error', 'auc'},
+        'num_leaves': trial.suggest_int("num_leaves", 10, 500),
+        'learning_rate': trial.suggest_loguniform("learning_rate", 1e-5, 1),
+        'feature_fraction': trial.suggest_uniform("feature_fraction", 0.0, 1.0),
+        'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64))
     }
+    
+    #params = {
+    #    'learning_rate': trial.suggest_uniform('learning_rate', 1e-2, 1e0),
+    #    'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64)),
+    #    'feature_fraction': trial.suggest_uniform('feature_fraction', 1e-1, 1e0),
+    #    'num_leaves':int(trial.suggest_int('num_leaves', 2, 128)),
+    #    'drop_date': trial.suggest_uniform('drop_date', 1e-2, 1e0),
+    #}
 
     #model = xgb.XGBClassifier(**params, boosting='dart', application='binary',metric='auc')
     lgb = LightGBM(**params)
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     # インスタンス生成
     lgb = LightGBM()
 
-    train_csv_name = "train_2019"
-    test_csv_name = "test_2019"
+    train_csv_name = "train_2019_2"
+    test_csv_name = "test_2019_2"
     # test_csvが予測したいレースの場合 True, 新しいモデルを作成したい場合 False
     yosoku = False
 
@@ -137,23 +137,23 @@ if __name__ == "__main__":
 
     # 前処理
     if train_pre:
-        print("Train preprocessing... ", end='')
+        print("Train preprocessing... ")
         keibaTrain = lgb.preprocessing(keibaTrain)
         keibaTrain.to_csv("../data/Preprocessed_datas/"+train_csv_name+"_preprocessing.csv", encoding="shift-jis")
-        print(" done.")
 
     if test_pre:
-        print("Test preprocessing... ", end='')
+        print("Test preprocessing... ")
         keibaTest = lgb.preprocessing(keibaTest)
         keibaTest.to_csv("../data/Preprocessed_datas/"+test_csv_name+"_preprocessing.csv", encoding="shift-jis")
-        print(" done.")
 
     # ランキング表示させるなら。
     keibaTest2 = keibaTest.copy() # rankingの表示用
 
     # カテゴリー処理
-    category = ["Horse_Name", "Sex", "Jockey", "Trainer",
-                "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
+    category = ["Horse_Name", "Sex", "Jockey", "Trainer", "date", "course", "direction", "weather", "status",
+                "Horse_Name2", "Sex2", "Jockey2", "Trainer2", "date2", "course2", "direction2", "weather2", "status2"]
+    #category = ["Horse_Name", "Sex", "Jockey", "Trainer",
+    #            "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
     keibaTrain, keibaTest = lgb.category_encode(keibaTrain, keibaTest, category)
 
     if yosoku:
