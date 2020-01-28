@@ -5,8 +5,11 @@ import time
 import csv
 import pandas as pd
 import sys
-from selenium.common.exceptions import NoSuchElementException
+import os
 import re
+from selenium.common.exceptions import NoSuchElementException
+
+
 #driver = webdriver.Chrome("/Users/higashikaito/selenium/chromedriver")
 class Netkeiba:
     def __init__(self):
@@ -14,15 +17,18 @@ class Netkeiba:
         self.date_list_url = [] # eventの日付のURLの保持
         self.race_list_url = []  # eventのURLの保持
         self.race_result_url = []  # raceのURLの保持
-        #self.horse_url = []  # 馬のURLの保持
+        self.horse_url = []  # 馬のURLの保持
 
     def setDriver(self, url):
         self.driver.get(url)
 
+    def classClick(self, class_name):
+        self.driver.find_element_by_class_name(class_name).click()
+
     def delDriver(self):
         self.driver.close()
         self.driver.quit()
-
+    #ページを開くための関数
     def getEventURL(self, event_url):
         list_add = []
         #self.driver.find_element_by_class_name("Button_01").click() # 非表示部分を表示させる。
@@ -36,36 +42,40 @@ class Netkeiba:
                 continue
         time.sleep(2)  # ゆっくりアクセス
         return list_add
-    
-    def getData(self,url):
-        tables = self.driver.find_element_by_class_name("nk_tb_common")#_table_old nk_tb_common　
-        #tables = self.driver.find_element_by_id("shutuba")
-        #print(tables)
-        #trs = tables.find_elements(By.TAG_NAME, "tr")
+    #HTML上のデータを持ってくる関数
+
+
+    def getData(self, url):
+        tables = self.driver.find_element_by_class_name("Shutuba_Table")  # _table_old nk_tb_common
+        class_of_HorseList = self.driver.find_elements_by_class_name("HorseList")  #レースに出場する馬の数
+        number_of_horse = len(class_of_HorseList)
         trs = tables.find_elements(By.TAG_NAME, "tr")
         hor = tables.find_elements(By.TAG_NAME, "a")
-        ho_da2=[]#dataの2次元配列
-        for i in range(1,len(trs)):
+        ho_da2 = []  # dataの2次元配列
+        for i in range(1, len(trs)):
             tds = trs[i].find_elements(By.TAG_NAME, "td")
-            ho_da=[]
-            for j in range(0,len(tds)):
+            ho_da = []
+            print(len(tds))
+            for j in range(0, len(tds)):
                 horse_info = tds[j].text
+                if "--" in horse_info:
+                    continue
                 if "消" in horse_info:
                     continue
-                if "牡" in horse_info or "牝" in horse_info: # 性別, 年齢, 体重, 増減に分ける。
-                    ho_da += horse_info[0],int(horse_info[1])
+                if "牡" in horse_info or "牝" in horse_info:  # 性別, 年齢, 体重, 増減に分ける。
+                    ho_da += horse_info[0], int(horse_info[1])
                     continue
-                if "セ" in horse_info:#せんばのための処理
+                if "セ" in horse_info:  # せんばのための処理
                     try:
-                        ho_da += horse_info[0],int(horse_info[1])
+                        ho_da += horse_info[0], int(horse_info[1])
                         continue
                     except ValueError:
                         pass
-                try:#体重と増減の処理
-                    wei_sp=re.split('[()]', horse_info)
-                    ho_da += int(wei_sp[0]),int(wei_sp[1])
+                try:  # 体重と増減の処理
+                    wei_sp = re.split('[()]', horse_info)
+                    ho_da += int(wei_sp[0]), int(wei_sp[1])
                     continue
-                except (ValueError,IndexError):
+                except (ValueError, IndexError):
                     pass
                 if len(ho_da) >= 11:
                     if "" == horse_info or " " == horse_info:
@@ -75,19 +85,29 @@ class Netkeiba:
             if 0 == len(ho_da):
                 continue
             ho_da2.append(ho_da)
-            #print(ho_da2)
+            print(ho_da2)
         #columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey","Burden_Weight", "Winning_Popularity", "Estimated_Climb"]
-        df = pd.DataFrame(ho_da2,columns = ["Frame", "Horse_Num", "Horse_Name", "Sex", "Age","Burden_Weight",
-            "Jockey","Trainer", "Horse_Weight", "Weight_Gain_or_Loss","odds", "Winning_Popularity"])#TraineとJockeyが逆、負担重量も場所が違う
-        df.to_csv( 'df.csv', index=False )
-        return df
+        df = pd.DataFrame(ho_da2, columns=["Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Burden_Weight",
+                                           "Jockey", "Trainer", "Horse_Weight", "odds", "Winning_Popularity"])  # TrainerとJockeyが逆、負担重量も場所が違う
+        print(df)
+        df.to_csv('df.csv', index=False)
+        return df,number_of_horse
+
+            
+            
+               
+                #with open("../data/scraping_datas/data1.txt", "a") as f:
+                    #f.write(tds[j].text+"\n")
+                    #print(wow.text) # 馬ごとの様々な情報が表示される。
+                #self.horse_url.append(hor[i-1].get_attribute("href"))
+                #print(hor[i-1].get_attribute("href")) # 馬のURL
                 
-    def getEstimatedClimb(self):#推定上がり
+    def getEstimatedClimb(self,number_of_hose):#推定上がり
         horse_url=[]
         horse_url=nk.getEventURL("https://db.netkeiba.com/horse/")#馬のurlを取得
         est_cli = []
         #print(horse_url)
-        for i in range(0,len(horse_url)):#馬のデータのurl
+        for i in range(number_of_horse):#馬のデータのurl
             self.setDriver(horse_url[i])#レースのurlを開く
             try:
                 tables = self.driver.find_element_by_class_name("nk_tb_common")
@@ -110,43 +130,44 @@ class Netkeiba:
         #print("pandas",df)
         return df
 
-    def make_csv(self,df,df_ec):
-        df_re=pd.concat([df, df_ec], axis=1)
+    def make_csv(self, df, df_ec):
+        df_re = pd.concat([df, df_ec], axis=1)
+        df_re = df_re[["Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight",
+                       "Jockey", "Trainer", "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]]
         df_re["Ranking"] = df_re["Horse_Num"]
-        df_re=df_re[["Ranking","Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Jockey","Trainer","Burden_Weight", "Winning_Popularity", "Estimated_Climb"]]
-       
-        #df_re=df_re[[,"Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Jockey","Trainer","Burden_Weight", "Winning_Popularity", "Estimated_Climb"]]
+        df_re = df_re[["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight",
+                       "Jockey", "Trainer", "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]]
         #df_re.to_csv('../data/scraping_datas/df_1.csv', index=False )
         return df_re
-
+        
     def save_csv(self, df, csv_title):
-        df.to_csv("../data/" + csv_title + ".csv", index=False)
+        df.to_csv('../data/' + csv_title + '.csv', index=False)
+
 
 if __name__ == "__main__":
     nk = Netkeiba()
-    nk.setDriver("https://race.netkeiba.com/?pid=race_list") #最初のURL
-    date_list_url = nk.getEventURL("/?pid=race_list&id=c") # 「c」は開催予定レース、「p」は過去のレース
-    #print(date_list_url)
-    race_list_url=[]
+    nk.setDriver("https://racev3.netkeiba.com/top/")  # 最初のURL
+    date_list_url = nk.getEventURL("race_list_sub.html?kaisai_date=")
+    print("data_list_url =")
+    print(date_list_url)
+    race_list_url = []
     for i in date_list_url:
         nk.setDriver(i)#開催予定の日付のurlを開く
-        race_list_url.append(list(dict.fromkeys(nk.getEventURL("/?pid=race_old&id="))))#レースのurl
-    for i , date_url in enumerate(race_list_url,0):
-        #print(len(date_url))
-        day = date_list_url[i][45:49]#日付を取得している
-        for j , race_url in enumerate(date_url,1):
-            #print(len(date_url))
-            csv_title = str(day) + "_R" + str(j)
-            #print("最初のurl",race_url)
-            nk.setDriver(race_url)#レースのurlを開く
-            df = nk.getData(race_url)
-            df_ec = nk.getEstimatedClimb()
-            df_re = nk.make_csv(df,df_ec)
-            #print(csv_title)
-            nk.save_csv(df_re,csv_title)
-            #break#1レースだけ
-        break
+        race_list_url.append(list(dict.fromkeys(nk.getEventURL("netkeiba.com/race/shutuba.html"))))  # レースのurl
+    print("race_rist_url = ")
+    print(race_list_url)
+    print(len(race_list_url[3]))
 
-    # nk.getRaceURL()
-    # nk.getRaceResult()
+    for i, date_url in enumerate(race_list_url,):
+        day = date_list_url[i][63:71]
+        print(day)
+        for j , race_url in enumerate(date_url,1):
+            csv_title = str(day) + '_R' + str(j)
+            print("最初のurl",race_url)
+            nk.setDriver(race_url)  # レースのurlを開く
+            df,number_of_horse = nk.getData(race_url)
+            df_ec = nk.getEstimatedClimb(number_of_horse)
+            df_re = nk.make_csv(df, df_ec)
+            nk.save_csv(df_re, csv_title)
+
     nk.delDriver()
