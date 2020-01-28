@@ -4,6 +4,8 @@
 ---
 - ディレクトリ
     - data CSVファイル
-        - 日付.csv : 学習用データ
-        - test*.csv : テスト用データ
+        - Learning_datas : 学習用データ
+        - Forecast_datas : 予測用データ
+        - Preprocessed_datas : 前処理済みデータ
+        - lgb_model : LightGBMモデルの保存場所
     - src ソースコード 

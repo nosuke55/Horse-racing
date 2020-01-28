@@ -5,12 +5,22 @@ from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_sc
 import optuna
 from functools import partial
 from LightGBM import LightGBM
-from LogisticReg import LogisticReg
+#from LogisticReg import LogisticReg
+import pickle, os
 
 # ハイパーパラメータ関数
-def objective(trial, X_train, y_train, X_test, y_test):
+def objective(trial, X_train, y_train, X_test, y_test, batch=100):
     """最小化する目的関数"""
     # 調整するハイパーパラメータ
+    #params = {
+    #    'boostring': trial.suggest_categorical('boostring', ['gbdt', 'dart', 'goss']),
+    #    'metric': {'binary', 'binary_error', 'auc'},
+    #    'num_leaves': trial.suggest_int("num_leaves", 10, 500),
+    #    'learning_rate': trial.suggest_loguniform("learning_rate", 1e-5, 1),
+    #    'feature_fraction': trial.suggest_uniform("feature_fraction", 0.0, 1.0),
+    #    'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64))
+    #}
+    
     params = {
         'learning_rate': trial.suggest_uniform('learning_rate', 1e-2, 1e0),
         'min_data_in_leaf': int(trial.suggest_int('min_data_in_leaf', 2, 64)),
@@ -18,42 +28,17 @@ def objective(trial, X_train, y_train, X_test, y_test):
         'num_leaves':int(trial.suggest_int('num_leaves', 2, 128)),
         'drop_date': trial.suggest_uniform('drop_date', 1e-2, 1e0),
     }
+
     #model = xgb.XGBClassifier(**params, boosting='dart', application='binary',metric='auc')
     lgb = LightGBM(**params)
-    lgb.fit(X_train,y_train) # 学習させる
+    lgb.fit(X_train,y_train, batch=batch) # 学習させる
     pred = lgb.predict(X_test)  # テストデータからラベルを予測する
     preds = np.round(np.abs(pred))
     return f1_score(y_true=y_test, y_pred=preds, average='micro')#accuracy_score(y_test, model.predict(X_test))#最小化なので1から正解率を引く
 
-
-if __name__ == "__main__":
+def create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100):
     # インスタンス生成
     lgb = LightGBM()
-    logi = LogisticReg()
-
-    # csvを読み込む
-    #keibaTrain = pd.read_csv("../data/scraping_datas/all2019.csv",sep=",", encoding="shift-jis")
-    keibaTrain = pd.read_csv("../data/scraping_datas/train_preprocessing.csv",sep=",", encoding="shift-jis")
-    keibaTest = pd.read_csv("../data/0111_R1_R4.csv",sep=",")#, encoding='shift-jis')
-
-    category = "Horse_Name", "Sex", "Jockey", "Trainer",
-    "Horse_Name2", "Sex2", "Jockey2", "Trainer2"
-    #category = ["Horse_Name", "Sex_Age", "Jockey", "Trainer", "Wind_Direction", "Date", 
-    #     "Horse_Name2", "Sex_Age2", "Jockey2", "Trainer2", "Wind_Direction2", "Date2"]
-
-    # トレインデータの前処理
-    #keibaTrain = lgb.preprocessing(keibaTrain.drop(columns="Unnamed: 0"))
-    #keibaTrain.to_csv("../data/scraping_datas/train_preprocessing.csv", encoding="shift-jis")
-    #keibaTrain = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), category)
-
-    # テストデータの前処理
-    keibaTest = lgb.preprocessing(keibaTest)
-    keibaTest2 = keibaTest.copy() # rankingの表示用
-    #keibaTest = lgb.category_encode(keibaTest, category, isTest=True)
-
-    # カテゴリー処理
-    keibaTrain, keibaTest = lgb.category_encode(keibaTrain.drop(columns="Unnamed: 0"), keibaTest, category)
-
     # データの準備
     X_train = keibaTrain.drop(columns="Win_or_Lose")
     y_train = keibaTrain["Win_or_Lose"]
@@ -64,23 +49,114 @@ if __name__ == "__main__":
     horse_Test = lgb.test_data(X_test, y_test, horse_Train)
 
     #ハイパーパラメータ探索
-    #optuna.logging.set_verbosity(optuna.logging.WARNING) # oputenaのログ出力停止
-    #study = optuna.create_study(direction='maximize')  # 最適化のセッションを作る,minimize,maximize
-    #study.optimize(lambda trial: objective(trial, horse_Train, horse_Test, X_test, y_test), n_trials=30)  # 最適化のセッションを作る
-    #print("ベストF１",study.best_value)
-    #print("ベストparam", study.best_params)
+    study = optuna.create_study(direction='maximize')  # 最適化のセッションを作る,minimize,maximize
+    study.optimize(lambda trial: objective(trial, horse_Train, horse_Test, X_test, y_test, batch), n_trials=n_trials)  # 最適化のセッションを作る
+    print("ベストF１",study.best_value)
+    print("ベストparam", study.best_params)
 
-    # 学習する
-    #lgb = LightGBM(**study.best_params)
-    #lgb = LightGBM()
-    lgb = LightGBM(learning_rate=0.09837612817007463, min_data_in_leaf=35, feature_fraction=0.6019194174984676, num_leaves=71, drop_date=0.5758799775332328)    
-    lgb.fit(horse_Train, horse_Test, batch=200)
-    #logi.fit(X_train, y_train)
-    #predicted = logi.predict(X_test)
+    # ベストパラメータで学習。 学習後モデルを保存する。
+    lgb = LightGBM(**study.best_params)
+    lgb.fit(horse_Train, horse_Test, batch=batch)
+    if not os.path.exists("../data/lgb_model"):
+        os.mkdir("../data/lgb_model")
+    with open("../data/lgb_model/bestModel.pkl", "wb") as fp:
+        pickle.dump(lgb.model, fp)
+
+def load_model(keibaTest, keibaRank):
+    # インスタンス生成
+    lgb = LightGBM()
+
+    with open("../data/lgb_model/bestModel.pkl", "rb") as pkl:
+        lgb.model = pickle.load(pkl)
+
+    # データの準備
+    X_test = keibaTest.drop(columns="Win_or_Lose")
+    y_test = keibaTest["Win_or_Lose"]
+
+    # モデルと比較
     predicted = lgb.predict(X_test)
     lgb.accuracy_rate(y_test, predicted)
-    #logi.accuracy_matrix(X_test, y_test)
     # 順位を表示する
     lgb.ranking(keibaTest2, predicted)
     lgb.plot_imp()
-    #logi.ranking(keibaTest2, predicted)
+
+def load_csv(train_csv_name, test_csv_name, yosoku=False):
+    """
+    データの置き方。
+    学習データは data/Learning_datas内に保存する。
+    予想データは data/Forecast_datas内に保存する。
+    前処理済みデータは data/Preprocessed_datas内に保存する。
+    """
+    train_pre, test_pre = False, False
+    if os.path.exists("../data/Preprocessed_datas/"+train_csv_name+"_preprocessing.csv"):
+        train_csv_path = "../data/Preprocessed_datas/"+train_csv_name+"_preprocessing.csv"
+    else:
+        train_csv_path = "../data/Learning_datas/"+train_csv_name+".csv"
+        train_pre = True
+    
+    if os.path.exists("../data/Preprocessed_datas/"+test_csv_name+"_preprocessing.csv"):
+        test_csv_path = "../data/Preprocessed_datas/"+test_csv_name+"_preprocessing.csv"
+    else:
+        if yosoku:
+            test_csv_path = "../data/Forecast_datas/"+test_csv_name+".csv"
+        else:
+            test_csv_path = "../data/Learning_datas/"+test_csv_name+".csv"
+        test_pre = True
+    try:
+        keibaTrain = pd.read_csv(train_csv_path, sep=",")
+    except UnicodeDecodeError:
+        keibaTrain = pd.read_csv(train_csv_path, sep=",", encoding="shift-jis")
+    try:
+        keibaTest = pd.read_csv(test_csv_path, sep=",")
+    except UnicodeDecodeError:
+        keibaTest = pd.read_csv(test_csv_path, sep=",", encoding="shift-jis")
+    # Unnamed: 0の削除。　preprocessing後のデータについてる
+    try:
+        keibaTrain = keibaTrain.drop(columns="Unnamed: 0")
+    except KeyError:
+        pass
+    try:
+        keibaTest = keibaTest.drop(columns="Unnamed: 0")
+    except KeyError:
+        pass
+    return keibaTrain, train_pre, keibaTest, test_pre  
+
+if __name__ == "__main__":
+    # インスタンス生成
+    lgb = LightGBM()
+
+    train_csv_name = "train_2019"
+    test_csv_name = "test_2019"
+    # test_csvが予測したいレースの場合 True, 新しいモデルを作成したい場合 False
+    yosoku = False
+
+    # csvを読み込む
+    print("Load csv... ", end='')
+    keibaTrain, train_pre, keibaTest, test_pre = load_csv(train_csv_name, test_csv_name, yosoku=yosoku)
+    print(" done.")
+
+    # 前処理
+    if train_pre:
+        print("Train preprocessing... ", end='')
+        keibaTrain = lgb.preprocessing(keibaTrain)
+        keibaTrain.to_csv("../data/Preprocessed_datas/"+train_csv_name+"_preprocessing.csv", encoding="shift-jis")
+        print(" done.")
+
+    if test_pre:
+        print("Test preprocessing... ", end='')
+        keibaTest = lgb.preprocessing(keibaTest)
+        keibaTest.to_csv("../data/Preprocessed_datas/"+test_csv_name+"_preprocessing.csv", encoding="shift-jis")
+        print(" done.")
+
+    # ランキング表示させるなら。
+    keibaTest2 = keibaTest.copy() # rankingの表示用
+
+    # カテゴリー処理
+    category = ["Horse_Name", "Sex", "Jockey", "Trainer",
+                "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
+    keibaTrain, keibaTest = lgb.category_encode(keibaTrain, keibaTest, category)
+
+    if yosoku:
+        load_model(keibaTest, keibaTest2)
+    else:
+        create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100)
