@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 import category_encoders as ce
+from sklearn import preprocessing #カテゴリデータ(定性的データ)を辞書順に整数に変換
 import matplotlib.pyplot as plt
 
 #ふうう
@@ -120,7 +121,7 @@ class LightGBM():
     
     #重要度の可視化
     def plot_imp(self):
-        fig, axs = plt.subplots(2, 1, figsize=[30, 10])
+        fig, axs = plt.subplots(2, 1, figsize=[20, 10])
 
         # Plot the log loss during training
         axs[0].plot(self.evaluation_results['Train']['auc'], label='Train')

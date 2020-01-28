@@ -34,10 +34,10 @@ if __name__ == "__main__":
     # csvを読み込む
     #keibaTrain = pd.read_csv("../data/scraping_datas/all2019.csv",sep=",", encoding="shift-jis")
     keibaTrain = pd.read_csv("../data/scraping_datas/train_preprocessing.csv",sep=",", encoding="shift-jis")
-    keibaTest = pd.read_csv("../data/111(中山)/4R.csv",sep=",", encoding='shift-jis')
+    keibaTest = pd.read_csv("../data/0111_R1_R4.csv",sep=",")#, encoding='shift-jis')
 
-    category = ["Horse_Name", "Sex", "Jockey", "Trainer",
-                "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
+    category = "Horse_Name", "Sex", "Jockey", "Trainer",
+    "Horse_Name2", "Sex2", "Jockey2", "Trainer2"
     #category = ["Horse_Name", "Sex_Age", "Jockey", "Trainer", "Wind_Direction", "Date", 
     #     "Horse_Name2", "Sex_Age2", "Jockey2", "Trainer2", "Wind_Direction2", "Date2"]
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     # 学習する
     #lgb = LightGBM(**study.best_params)
     #lgb = LightGBM()
-    lgb = LightGBM(learning_rate = 0.326892551127119, min_data_in_leaf = 48, feature_fraction = 0.11436715830002117, num_leaves = 119, drop_date = 0.44994135049617967)
+    lgb = LightGBM(learning_rate=0.09837612817007463, min_data_in_leaf=35, feature_fraction=0.6019194174984676, num_leaves=71, drop_date=0.5758799775332328)    
     lgb.fit(horse_Train, horse_Test, batch=200)
     #logi.fit(X_train, y_train)
     #predicted = logi.predict(X_test)
@@ -82,4 +82,5 @@ if __name__ == "__main__":
     #logi.accuracy_matrix(X_test, y_test)
     # 順位を表示する
     lgb.ranking(keibaTest2, predicted)
+    lgb.plot_imp()
     #logi.ranking(keibaTest2, predicted)
