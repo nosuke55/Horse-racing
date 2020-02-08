@@ -24,15 +24,15 @@
 - Chromedriver-binary: 79.0.3945.36.0
 
 ## スクレイピング 
-1. 学習用データの取得
-学習用にこれまで行われた競馬の結果を取得する。
-`python3 scraping.py`
-スクレイピング後にCSVファイルの作成。
-`python3 make_csv.py`
+1. 学習用データの取得  
+学習用にこれまで行われた競馬の結果を取得する。  
+`python3 scraping.py`  
+スクレイピング後にCSVファイルの作成。  
+`python3 make_csv.py`  
 
-2. 予測用データの取得
-その日行われる競馬の出馬情報の取得。
-`python3 newscraping.py`
+2. 予測用データの取得  
+その日行われる競馬の出馬情報の取得。  
+`python3 newscraping.py`  
 
 
 ## 競馬学習
