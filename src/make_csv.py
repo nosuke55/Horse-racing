@@ -1,7 +1,25 @@
+"""csv変換
+
+``scraping.py``により取得された``data.txt``、``agari.txt``、``race_info.txt``のデータからcsvファイルを作成する。
+
+    Note:
+        ``scraping.py``で取得されたテキストデータのみcsv変換が可能である。
+
+"""
 import pandas as pd
 import re
 
 def csv_generator(data, agari, info):
+    """リストデータからcsv作成
+
+        Args:
+            data(list), agari(list), info(list):
+                ``readTextfiles``関数からのリスト型データ
+        
+        Note:
+            データを追加した場合はcolumnsも更新する必要がある。
+
+    """
     #columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss",
     #            "Trainer", "Jockey", "Burden_Weight", "Winning_Popularity", "Estimated_Climb"]
     columns = ["Ranking", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
@@ -69,7 +87,10 @@ def csv_generator(data, agari, info):
             try:
                 tmp.append(int(tmp_a)) # 数値はint型に
             except ValueError:
-                tmp.append(tmp_a) # 名前はstring型
+                if tmp_a[0].isalpha(): # 騎手の名前の記号を排除する
+                    tmp.append(tmp_a) # 名前はstring型
+                else:
+                    tmp.append(tmp_a[1:])
         if isCancell: # 取り消し, 中止の馬がきたら次に行く。その馬の推定上がりを無視する。
             isCancell = False
             continue
@@ -93,11 +114,22 @@ def csv_generator(data, agari, info):
         merge.append(tmp)
     return pd.DataFrame(merge, index=None, columns=columns)
 
-#13:15 ダ1400m (右) 16頭 雨
-#良
 
 # テキストに保存したデータをリストにする方法
 def readTextfiles():
+    """テキストデータの読み込み
+
+    テキストデータをlist型で読み込みをする。
+
+        Returns:
+            data(list):
+                ``data.txt``のリスト
+            agari(list):
+                ``agari.txt``のリスト
+            info(list):
+                ``race_info.txt``のリスト
+
+    """
     data = []
     agari = []
     with open("../data/scraping_datas/data.txt", "r") as s:

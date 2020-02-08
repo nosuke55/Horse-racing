@@ -14,6 +14,24 @@ class LogisticReg():
 
     # 競馬用 前処理
     def preprocessing(self, keibaData):
+        """レースごとの馬の組み合わせ作成
+
+        入力のレース情報にいる馬同士の組み合わせを作成する。
+        組み合わせ作成後は順位データは削除され、馬同士の勝ち負けが追加される。
+
+            Args:
+                keibaData(pd.DataFrame):
+                    レースの情報。CSVファイル等から読み込んだデータ。順位の情報が必須であり1番目のカラムにある必要がある。
+            
+            Returns:
+                newData(pd.DataFrame):
+                    馬の組み合わせ情報。``Win_or_Lose``カラムが組み合わせの勝ち負け。前の馬が後ろの馬に勝っていれば1、負けなら0。
+            
+            Note:
+                newColumns(list)は引数のkeibaData(pd.DataFrame)のカラムを2つ繋げたものとなる。
+                そのため、keibaDataから削除したカラム、追加したカラムがあればnewColumnsも合わせる必要がある。
+
+        """
         #newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex_Age", "Burden_Weight", "Jockey", "Estimated_Climb",
         #    "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Winning_Popularity", "Precipitation_Amount", "Temperature", 
         #    "Wind_Speed", "Wind_Direction", "Race", "Distance", "Date", "Frame2", "Horse_Num2", "Horse_Name2", "Sex_Age2", 
@@ -58,6 +76,23 @@ class LogisticReg():
 
     # 文字データの処理
     def category_encode(self, keibaTrain, keibaTest, category):
+        """カテゴリ特徴量の処理
+
+        ``Category encoders``の``OrdinalEncoder``で処理をする。
+
+            Args:
+                keibaTrain(pd.DataFrame):
+                    学習用のトレーニングデータ
+                keibaTest(pd.DataFrame):
+                    学習用のテストデータ
+                category(list):
+                    カテゴリデータの一覧(カラム名)。
+            
+            Returns:
+                train, test(pd.DataFrame):
+                    カテゴ特徴量の処理後。
+
+        """
         ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='value')
         train = ce_oe.fit_transform(keibaTrain)
         test = ce_oe.transform(keibaTest)
@@ -76,6 +111,19 @@ class LogisticReg():
 
     # 馬の順位を表示する
     def ranking(self, keibaTest, predicted):
+        """予測後の順位を表示する
+
+            Args:
+                keibaTest(pd.DataFrame):
+                    学習で使用したテストデータ。``preprocessing``関数の処理後のデータであり、カテゴリ処理をしていないデータである必要がある。
+                predicted(list):
+                    学習後のpredicted。``predict``関数で取得できる。
+            
+            Note:
+                馬の組み合わせを作成したデータから、predictedで勝ちと予想された行を取り出し、馬名をカウントしている。
+                そのため、馬の組み合わせ処理が必要であり``preprocessing``関数を利用したデータのみ表示することができる。
+
+        """
         rank = pd.DataFrame()
         # predicted で勝ちと予想された行のみを取得
         for p in range(0, len(predicted), 2):
