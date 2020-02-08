@@ -42,10 +42,14 @@ def create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100):
     # データの準備
     X_train = keibaTrain.drop(columns="Win_or_Lose")
     y_train = keibaTrain["Win_or_Lose"]
+    #X_train = keibaTrain.drop(columns="Ranking")
+    #y_train = keibaTrain["Ranking"]
     horse_Train = lgb.train_data(X_train, y_train)
 
     X_test = keibaTest.drop(columns="Win_or_Lose")
     y_test = keibaTest["Win_or_Lose"]
+    #X_test = keibaTest.drop(columns="Ranking")
+    #y_test = keibaTest["Ranking"]
     horse_Test = lgb.test_data(X_test, y_test, horse_Train)
 
     #ハイパーパラメータ探索
@@ -56,11 +60,13 @@ def create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100):
 
     # ベストパラメータで学習。 学習後モデルを保存する。
     lgb = LightGBM(**study.best_params)
+    #lgb = LightGBM(boostring='gbdt', num_leaves=500, learning_rate=0.9987965620694164, feature_fraction=0.9998898094395211, min_data_in_leaf=14)
     lgb.fit(horse_Train, horse_Test, batch=batch)
     if not os.path.exists("../data/lgb_model"):
         os.mkdir("../data/lgb_model")
     with open("../data/lgb_model/bestModel.pkl", "wb") as fp:
         pickle.dump(lgb.model, fp)
+    lgb.plot_imp()
 
 def load_model(keibaTest, keibaRank):
     # インスタンス生成
@@ -73,12 +79,17 @@ def load_model(keibaTest, keibaRank):
     X_test = keibaTest.drop(columns="Win_or_Lose")
     y_test = keibaTest["Win_or_Lose"]
 
+    # データの準備
+    #X_test = keibaTest.drop(columns="Ranking")
+    #y_test = keibaTest["Ranking"]
+
     # モデルと比較
     predicted = lgb.predict(X_test)
+    #print(predicted)
     lgb.accuracy_rate(y_test, predicted)
     # 順位を表示する
     lgb.ranking(keibaTest2, predicted)
-    lgb.plot_imp()
+    #lgb.plot_imp()
 
 def load_csv(train_csv_name, test_csv_name, yosoku=False):
     """
@@ -125,10 +136,10 @@ if __name__ == "__main__":
     # インスタンス生成
     lgb = LightGBM()
 
-    train_csv_name = "train_2019_2"
-    test_csv_name = "test_2019_2"
+    train_csv_name = "train_2019_3"
+    test_csv_name = "10R118"
     # test_csvが予測したいレースの場合 True, 新しいモデルを作成したい場合 False
-    yosoku = False
+    yosoku = True
 
     # csvを読み込む
     print("Load csv... ", end='')
@@ -138,12 +149,12 @@ if __name__ == "__main__":
     # 前処理
     if train_pre:
         print("Train preprocessing... ")
-        keibaTrain = lgb.preprocessing(keibaTrain)
+        keibaTrain = lgb.preprocessing(keibaTrain.drop(columns="Winning_Popularity"))
         keibaTrain.to_csv("../data/Preprocessed_datas/"+train_csv_name+"_preprocessing.csv", encoding="shift-jis")
 
     if test_pre:
         print("Test preprocessing... ")
-        keibaTest = lgb.preprocessing(keibaTest)
+        keibaTest = lgb.preprocessing(keibaTest.drop(columns="Winning_Popularity"))
         keibaTest.to_csv("../data/Preprocessed_datas/"+test_csv_name+"_preprocessing.csv", encoding="shift-jis")
 
     # ランキング表示させるなら。
@@ -152,11 +163,10 @@ if __name__ == "__main__":
     # カテゴリー処理
     category = ["Horse_Name", "Sex", "Jockey", "Trainer", "date", "course", "direction", "weather", "status",
                 "Horse_Name2", "Sex2", "Jockey2", "Trainer2", "date2", "course2", "direction2", "weather2", "status2"]
-    #category = ["Horse_Name", "Sex", "Jockey", "Trainer",
-    #            "Horse_Name2", "Sex2", "Jockey2", "Trainer2"]
+
     keibaTrain, keibaTest = lgb.category_encode(keibaTrain, keibaTest, category)
 
     if yosoku:
         load_model(keibaTest, keibaTest2)
     else:
-        create_new_model(keibaTrain, keibaTest, n_trials=30, batch=100)
+        create_new_model(keibaTrain, keibaTest, n_trials=100, batch=100)

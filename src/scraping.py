@@ -1,4 +1,9 @@
-# netkeibaをscraping
+"""netkeibaをscraping
+
+    Note:
+        netkeiba.comのサーバに負荷をかけないために2秒ごとにアクセスしています。
+
+"""
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -25,15 +30,20 @@ class Netkeiba:
         self.driver.quit()
 
     def getEventURL(self, year):
-        """
-        指定した年の12 ~ 1月までの東京で開催されたURLの取得。
+        """開催URLの取得
+
+            Args:
+                year(string):
+                    例えば``2019``なら2019年に開催されたURLのみ取得する。
+                    1年分しか設定できない。
+
         """
         for month in range(12,1,-1): # 12 ~ 1月まで
             elements = self.driver.find_elements_by_tag_name("a")
             for e in elements:
                 url = e.get_attribute("href")
                 try:
-                    if "?pid=race_list&kaisai_id=" in url: # 一旦東京のレースのみ
+                    if "?pid=race_list&kaisai_id=" in url: # kaisai_idを指定したら「東京」のみなどにできる。
                         print(url)
                         self.race_list_url.append(url)
                 except TypeError:
@@ -43,8 +53,10 @@ class Netkeiba:
             time.sleep(2) # ゆっくりアクセス
     
     def getRaceURL(self):
-        """
-        getEventURLで取得した競技のURLからレースごとのURLを取得する
+        """レースURLの取得
+
+        ``getEventURL``で取得した開催URLから開催された日にあったレースのURLを取得する。
+
         """
         #self.setDriver(self.race_list_url[0])
         for race_list in self.race_list_url:
@@ -60,10 +72,10 @@ class Netkeiba:
             time.sleep(2) # ゆっくりアクセス
 
     def getRaceResult(self):
-        """
-        getRaceURLに基づきレースの結果を取得する。
-        またそのレースに出場している馬のURLはhorse_urlに保存される。ただしレースごとなので毎回初期化される。
-        辞書型で馬が出場しているURLを保存させてもいいかも！！おいしいかも~
+        """レース結果の取得
+
+        ``getRaceURL``より取得したレースのURLから、毎レースの結果を取得する。
+
         """
         #self.setDriver(self.race_result_url[0])
         for race in self.race_result_url:
@@ -90,11 +102,18 @@ class Netkeiba:
             time.sleep(2) # ゆっくりアクセス
 
     def getHorseAgari(self, lastDate):
-        """
-        lastDateは推定上がりを取得したい馬が最後にレースした日時を上げる。
-        基本的にレースが行われた日時を入れるだけ。
-        形式は "201905050112"　こんな感じ。
-        レースURLの最後を渡せばいい
+        """馬の推定上がりの取得
+
+        現在取得しているレース情報のレース日時の1つ前のレースの推定上がりを取得する。
+
+            Args:
+                lastDate(string):
+                    推定上がりを取得する馬が走ったレースの日時
+                    形式は ``201905050112``
+
+            Note:
+                この関数は``getRaceResult``から読み出されるため、引数等は特に意識する必要はない。
+                初出場や前回のレースの推定上がりがない場合は推定上がりは``0``となる。
         """
         #self.setDriver(self.horse_url[0])
         for uma in self.horse_url:
@@ -137,6 +156,11 @@ class Netkeiba:
             time.sleep(2) # ゆっくりアクセス
 
     def getRaceInfo(self):
+        """レースの情報の取得
+
+        レースが行われた時間やその日の天気などが取得される。
+
+        """
         for url in self.race_result_url:
             print(url)
             self.setDriver(url)
@@ -148,15 +172,19 @@ class Netkeiba:
 
 
 if __name__ == "__main__":
+    """
+    レースURLは一度取得した後は``race_urls.txt``に保存されます。
+    次回同じレースURLを使用する場合は``180~185``行目をコメントアウトし、``186~188``行目のコメントを外してください。
+    """
     nk = Netkeiba()
-    #nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
-    #nk.getEventURL("2019")
-    #nk.getRaceURL()
-    #with open("race_urls.txt", "a") as f:
-    #    for url in nk.race_result_url:
-    #        f.write(str(url)+"\n")
-    with open("rrace_urls.txt", "r") as f:
-        urls = f.read().splitlines()
-    nk.race_result_url = urls
+    nk.setDriver("https://race.sp.netkeiba.com/?pid=race_calendar&rf=faq")
+    nk.getEventURL("2019")
+    nk.getRaceURL()
+    with open("race_urls.txt", "a") as f:
+        for url in nk.race_result_url:
+            f.write(str(url)+"\n")
+    #with open("race_urls.txt", "r") as f:
+    #    urls = f.read().splitlines()
+    #nk.race_result_url = urls
     nk.getRaceResult()
     nk.delDriver()

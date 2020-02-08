@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 #ふうう
 class LightGBM():
-        # 初期処理
+    # 初期処理
     def __init__(self, boostring='dart' , learning_rate=0.05, min_data_in_leaf=20,#applications='binary'
         feature_fraction=0.7,num_leaves=41, metric='auc', drop_date=0.15):
         self.parameters = {
@@ -29,13 +29,43 @@ class LightGBM():
 
     # 競馬用 前処理
     def preprocessing(self, keibaData):
+        """レースごとの馬の組み合わせ作成
+
+        入力のレース情報にいる馬同士の組み合わせを作成する。
+        組み合わせ作成後は順位データは削除され、馬同士の勝ち負けが追加される。
+
+            Args:
+                keibaData(pd.DataFrame):
+                    レースの情報。CSVファイル等から読み込んだデータ。順位の情報が必須であり1番目のカラムにある必要がある。
+            
+            Returns:
+                newData(pd.DataFrame):
+                    馬の組み合わせ情報。``Win_or_Lose``カラムが組み合わせの勝ち負け。前の馬が後ろの馬に勝っていれば1、負けなら0。
+            
+            Note:
+                newColumns(list)は引数のkeibaData(pd.DataFrame)のカラムを2つ繋げたものとなる。
+                そのため、keibaDataから削除したカラム、追加したカラムがあればnewColumnsも合わせる必要がある。
+
+        """
+        # コース情報や気象情報などがない時のカラム
         #newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer",
         #             "Jockey","Burden_Weight", "Winning_Popularity", "Estimated_Climb", "Frame2", "Horse_Num2", "Horse_Name2", "Sex2","Age2",
         #             "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Jockey2","Burden_Weight2", "Winning_Popularity2", "Estimated_Climb2"]
+        # コース情報や気象情報がある時のカラム
+        #newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
+        #              "Burden_Weight", "Winning_Popularity", "Estimated_Climb", "date", "course", "meter", "direction", "weather", "status",
+        #              "Frame2", "Horse_Num2", "Horse_Name2", "Sex2","Age2", "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Jockey2", 
+        #              "Burden_Weight2", "Winning_Popularity2", "Estimated_Climb2", "date2","course2", "meter2", "direction2", "weather2", "status2"]
+        # 単勝人気を消したカラム
         newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
-                      "Burden_Weight", "Winning_Popularity", "Estimated_Climb", "date", "course", "meter", "direction", "weather", "status",
+                      "Burden_Weight", "Estimated_Climb", "date", "course", "meter", "direction", "weather", "status",
                       "Frame2", "Horse_Num2", "Horse_Name2", "Sex2","Age2", "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Jockey2", 
-                      "Burden_Weight2", "Winning_Popularity2", "Estimated_Climb2", "date2","course2", "meter2", "direction2", "weather2", "status2"]
+                      "Burden_Weight2", "Estimated_Climb2", "date2","course2", "meter2", "direction2", "weather2", "status2"]
+        # 単勝人気、推定上がりを消したカラム
+        #newColumns = ["Win_or_Lose", "Frame", "Horse_Num", "Horse_Name", "Sex", "Age", "Horse_Weight", "Weight_Gain_or_Loss", "Trainer", "Jockey",
+        #              "Burden_Weight", "date", "course", "meter", "direction", "weather", "status",
+        #              "Frame2", "Horse_Num2", "Horse_Name2", "Sex2","Age2", "Horse_Weight2", "Weight_Gain_or_Loss2", "Trainer2", "Jockey2", 
+        #              "Burden_Weight2", "date2","course2", "meter2", "direction2", "weather2", "status2"]
         horse_merge = []
         delete = 0 # 次に削除する最初の番地の保持。
         rtime = tqdm(total=len(keibaData)) # ランタイム。 ターミナル上に前処理の進捗状況を表示する。
@@ -70,11 +100,27 @@ class LightGBM():
                     horse_merge.append(list(horses))
             rtime.update(len(races)) # ランタイムの更新
         newData = pd.DataFrame(horse_merge, index=None, columns=newColumns, dtype='float64')
-        #newData = pd.DataFrame()
         return newData
 
     # 文字データの処理
     def category_encode(self, keibaTrain, keibaTest, category):
+        """カテゴリ特徴量の処理
+
+        ``Category encoders``の``OrdinalEncoder``で処理をする。
+
+            Args:
+                keibaTrain(pd.DataFrame):
+                    学習用のトレーニングデータ
+                keibaTest(pd.DataFrame):
+                    学習用のテストデータ
+                category(list):
+                    カテゴリデータの一覧(カラム名)。
+            
+            Returns:
+                train, test(pd.DataFrame):
+                    カテゴ特徴量の処理後。
+
+        """
         ce_oe = ce.OrdinalEncoder(cols=category,handle_unknown='value')
         train = ce_oe.fit_transform(keibaTrain)
         test = ce_oe.transform(keibaTest)
@@ -113,6 +159,19 @@ class LightGBM():
 
     # 馬の順位を表示する
     def ranking(self, keibaTest, predicted):
+        """予測後の順位を表示する
+
+            Args:
+                keibaTest(pd.DataFrame):
+                    学習で使用したテストデータ。``preprocessing``関数の処理後のデータであり、カテゴリ処理をしていないデータである必要がある。
+                predicted(list):
+                    学習後のpredicted。``predict``関数で取得できる。
+            
+            Note:
+                馬の組み合わせを作成したデータから、predictedで勝ちと予想された行を取り出し、馬名をカウントしている。
+                そのため、馬の組み合わせ処理が必要であり``preprocessing``関数を利用したデータのみ表示することができる。
+
+        """
         rank = pd.DataFrame()
         # predicted で勝ちと予想された行のみを取得
         for p in range(0, len(predicted), 2):
@@ -144,4 +203,7 @@ class LightGBM():
         axs[1].set_ylabel('Feature importance (# times used to split)')
         axs[1].set_title('Feature importance')
 
-        plt.show()
+        plt.xticks(rotation=90)
+        plt.tight_layout()
+        #plt.show()
+        plt.savefig("重要度.png")
