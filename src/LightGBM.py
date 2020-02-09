@@ -128,14 +128,47 @@ class LightGBM():
 
     # 学習データ作成
     def train_data(self, X_train, y_train):
+        """学習用データの作成
+            Args:
+                X_train:
+                    学習用のトレーニングデータ
+                y_train:
+                    学習用のラベルデータ
+            
+            Returns:
+                lgb.Dataset(X_train, label=y_train):
+                    学習用データの作成
+        """
         return lgb.Dataset(X_train, label=y_train)
     
     # テストデータの作成
     def test_data(self, X_test, y_test, train_data):
+        """テストデータの作成
+            Args:
+                X_test:
+                    学習用のtestデータ
+                y_test:
+                    学習用のtestデータ
+            
+            Returns:
+                lgb.Dataset(X_test, label=y_test, reference=train_data):
+                    学習用データの作成
+        """
         return lgb.Dataset(X_test, label=y_test, reference=train_data)
 
     # 学習
     def fit(self, train_data, test_data, batch=100):
+        """学習を行う
+            Args:
+                train_data:
+                    学習用trainデータ
+                test_data:
+                    学習用testデータ
+                batch:
+                    学習回数
+                    初期値は100
+
+        """
         #evaluation_results = {}
         self.model=lgb.train(self.parameters,
                         train_data,
@@ -149,9 +182,24 @@ class LightGBM():
         #return optimum_boost_rounds
 
     def predict(self,X_test):
+        """予測を行う
+            Args:
+                X_test:
+                    予測をしたいデータ
+            Returns:
+                model.predict(X_test):
+                    予測結果
+        """
         return self.model.predict(X_test)
 
     def accuracy_rate(self,y_test,y_pred):
+        """予測結果から正解率を表示
+            Args:
+                y_test:
+                    予測に使用したデータのラベル(目的変数)
+                y_pred:
+                    予測結果
+        """
         fpr, tpr, thresholds = metrics.roc_curve(y_test, y_pred)
         auc = metrics.auc(fpr, tpr)
         print("正解率",auc)
@@ -184,6 +232,8 @@ class LightGBM():
     
     #重要度の可視化
     def plot_imp(self):
+        """学習後にtrain,testそれぞれの学習回数ごとのAccuracyグラフと特徴量の重要度のグラフ表示
+        """
         fig, axs = plt.subplots(2, 1, figsize=[20, 10])
 
         # Plot the log loss during training
